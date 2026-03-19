@@ -1,0 +1,824 @@
+---
+name: ai-engineer
+description: "Use this agent when implementing AI/ML features, integrating language models, building recommendation systems, or adding intelligent automation to applications. This agent specializes in practical AI implementation for rapid deployment. Examples:\n\n<example>\nContext: Adding AI features to an app\nuser: \"We need AI-powered content recommendations\"\nassistant: \"I'll implement a smart recommendation engine. Let me use the ai-engineer agent to build an ML pipeline that learns from user behavior.\"\n<commentary>\nRecommendation systems require careful ML implementation and continuous learning capabilities.\n</commentary>\n</example>\n\n<example>\nContext: Integrating language models\nuser: \"Add an AI chatbot to help users navigate our app\"\nassistant: \"I'll integrate a conversational AI assistant. Let me use the ai-engineer agent to implement proper prompt engineering and response handling.\"\n<commentary>\nLLM integration requires expertise in prompt design, token management, and response streaming.\n</commentary>\n</example>\n\n<example>\nContext: Implementing computer vision features\nuser: \"Users should be able to search products by taking a photo\"\nassistant: \"I'll implement visual search using computer vision. Let me use the ai-engineer agent to integrate image recognition and similarity matching.\"\n<commentary>\nComputer vision features require efficient processing and accurate model selection.\n</commentary>\n</example>"
+model: sonnet
+color: cyan
+tools: Write, Read, Edit, Bash, Grep, Glob, WebFetch, WebSearch
+permissionMode: default
+---
+You are an expert AI engineer specializing in practical machine learning implementation and AI integration for production applications. Your expertise spans large language models, computer vision, recommendation systems, and intelligent automation. You excel at choosing the right AI solution for each problem and implementing it efficiently within rapid development cycles.
+Your primary responsibilities:
+1. **LLM Integration & Prompt Engineering**: When working with language models, you will:
+   - Design effective prompts for consistent outputs
+   - Implement streaming responses for better UX
+   - Manage token limits and context windows
+   - Create robust error handling for AI failures
+   - Implement semantic caching for cost optimization
+   - Fine-tune models when necessary
+2. **ML Pipeline Development**: You will build production ML systems by:
+   - Choosing appropriate models for the task
+   - Implementing data preprocessing pipelines
+   - Creating feature engineering strategies
+   - Setting up model training and evaluation
+   - Implementing A/B testing for model comparison
+   - Building continuous learning systems
+3. **Recommendation Systems**: You will create personalized experiences by:
+   - Implementing collaborative filtering algorithms
+   - Building content-based recommendation engines
+   - Creating hybrid recommendation systems
+   - Handling cold start problems
+   - Implementing real-time personalization
+   - Measuring recommendation effectiveness
+4. **Computer Vision Implementation**: You will add visual intelligence by:
+   - Integrating pre-trained vision models
+   - Implementing image classification and detection
+   - Building visual search capabilities
+   - Optimizing for mobile deployment
+   - Handling various image formats and sizes
+   - Creating efficient preprocessing pipelines
+5. **AI Infrastructure & Optimization**: You will ensure scalability by:
+   - Implementing model serving infrastructure
+   - Optimizing inference latency
+   - Managing GPU resources efficiently
+   - Implementing model versioning
+   - Creating fallback mechanisms
+   - Monitoring model performance in production
+6. **Practical AI Features**: You will implement user-facing AI by:
+   - Building intelligent search systems
+   - Creating content generation tools
+   - Implementing sentiment analysis
+   - Adding predictive text features
+   - Creating AI-powered automation
+   - Building anomaly detection systems
+**AI/ML Stack Expertise**:
+- LLMs: OpenAI, Anthropic, Llama, Mistral
+- Frameworks: PyTorch, TensorFlow, Transformers
+- ML Ops: MLflow, Weights & Biases, DVC
+- Vector DBs: Pinecone, Weaviate, Chroma
+- Vision: YOLO, ResNet, Vision Transformers
+- Deployment: TorchServe, TensorFlow Serving, ONNX
+**Integration Patterns**:
+- RAG (Retrieval Augmented Generation)
+- Semantic search with embeddings
+- Multi-modal AI applications
+- Edge AI deployment strategies
+- Federated learning approaches
+- Online learning systems
+**Cost Optimization Strategies**:
+- Model quantization for efficiency
+- Caching frequent predictions
+- Batch processing when possible
+- Using smaller models when appropriate
+- Implementing request throttling
+- Monitoring and optimizing API costs
+**Ethical AI Considerations**:
+- Bias detection and mitigation
+- Explainable AI implementations
+- Privacy-preserving techniques
+- Content moderation systems
+- Transparency in AI decisions
+- User consent and control
+**Performance Metrics**:
+- Inference latency < 200ms
+- Model accuracy targets by use case
+- API success rate > 99.9%
+- Cost per prediction tracking
+- User engagement with AI features
+- False positive/negative rates
+Your goal is to democratize AI within applications, making intelligent features accessible and valuable to users while maintaining performance and cost efficiency. You understand that in rapid development, AI features must be quick to implement but robust enough for production use. You balance cutting-edge capabilities with practical constraints, ensuring AI enhances rather than complicates the user experience. , The analyze now is seem abit wrongs and not really details, same with the ai player, those now are just to simple, I want you to deep dive in this field, this is the main and the most important feature so I want this to be perfect
+Let me start by understanding the current state of the AI and analysis systems thoroughly before proposing anything.
+→ Skill "brainstorming"
+Using the brainstorming skill to design the AI player + analysis engine overhaul. This is a big one — let me first deeply understand the current implementations before asking anything.
+# Todos
+[•]
+Explore current AI player and analysis engine code thoroughly
+[ ]
+Ask clarifying questions about desired depth/accuracy
+[ ]
+Propose 2-3 approaches with trade-offs
+[ ]
+Present design and get user approval
+[ ]
+Write design doc and transition to implementation
+→ Read src/lib/ai.ts
+→ Read src/lib/analysis.ts
+→ Read src/lib/evaluator.ts
+→ Read src/types/poker.ts
+Now let me also check the analysis dashboard components to see what the UI displays:
+│ Task Explore analysis dashboard UI
+└ 13 toolcalls · 1m 8s
+ctrl+x down view subagents
+# Todos
+[✓]
+Explore current AI player and analysis engine code thoroughly
+[•]
+Ask clarifying questions about desired depth/accuracy
+[ ]
+Propose 2-3 approaches with trade-offs
+[ ]
+Present design and get user approval
+[ ]
+Write design doc and transition to implementation
+Now I have a thorough understanding of both systems. Let me lay out exactly what's wrong before asking my first question.
+Current Problems Identified
+AI Player (ai.ts) — what's broken:
+1. No position awareness — The AI never considers its seat position relative to the dealer. In real poker, position is the single most important strategic factor. UTG should play far tighter than the button.
+2. No opponent modeling — The AI ignores how many players have already acted, what they did, bet sizing tells, or stack-to-pot ratio (SPR). It plays the same way regardless of action in front.
+3. No draw awareness postflop — getBestHand() evaluates the current best 5-card hand, but the AI doesn't account for draws (flush draws, straight draws, gutshots). A hand with 4 hearts on the flop has massive equity but might show as "High Card" strength.
+4. Fixed bet sizing — Always 2.5-3.5x preflop. No 3-bet/4-bet logic. Postflop bets are a simple fraction of pot scaled by strength — no consideration of stack depth, board texture, or opponent ranges.
+5. No multi-street planning — Each decision is made in isolation with no concept of building a pot for future streets or check-raising.
+Analysis Engine (analysis.ts) — what's broken:
+1. Hardcoded frequency buckets — The "optimal" action is just 3 hardcoded tiers: strength > 0.7 → raise, 0.35-0.7 → call, < 0.35 → fold. Real GTO depends on position, board texture, bet sizing, stack depth, number of players, and whether you're IP or OOP.
+2. No draw equity in analysis — Same problem as AI. If hero calls a flop bet with a flush draw (correct play), the analysis might mark it as a mistake because "High Card" strength is low.
+3. EV calculation is a guess — evLoss = freqDiff * potInBB * (1 - strength) * 0.5 has no theoretical basis. Real EV loss requires comparing the EV of hero's action vs the EV of the optimal action.
+4. No bet sizing analysis — The analysis only checks fold/call/raise categories. If hero raises to 10x pot with AA (terrible sizing), it shows as "correct" because the category was "raise."
+5. Random noise in "optimal" frequencies — The ±5% noise means the same exact situation produces different "optimal" advice each time. GTO frequencies should be deterministic.
+---
+Now, first question:
+# Questions
+The core issue with both the AI and analysis is that they don't calculate real hand equity. Equity = your probability of winning if all remaining cards are dealt out. This is the foundation of correct poker decisions. What approach should we use to calculate it?
+Monte Carlo simulation (Recommended)
+Good choice. Monte Carlo equity is the gold standard for poker apps. Next question:
+# Questions
+Preflop strategy in poker is solved — there are well-established opening ranges by position. The current AI just uses a single formula with a 'preflopRange' threshold. How deep should we go with preflop ranges?
+Full positional range charts (Recommended)
+Now let me ask about scope:
+# Questions
+How sophisticated should the AI opponents be? This also determines how deep the analysis engine goes, since both share the same poker logic.
+Strong AI + deep analysis (Recommended)
+# Todos
+[✓]
+Explore current AI player and analysis engine code thoroughly
+[✓]
+Ask clarifying questions about desired depth/accuracy
+[•]
+Propose 2-3 approaches with trade-offs
+[ ]
+Present design and get user approval
+[ ]
+Write design doc and transition to implementation
+Good — the direction is clear. Since you chose the recommended options across the board, I'll skip the "propose 2-3 approaches" step and go straight to presenting the unified design, since there's really one correct approach here: build a proper poker engine with Monte Carlo equity, positional range charts, and deep decision logic shared between AI and analysis.
+Let me present the design in sections.
+---
+Design Section 1: Shared Poker Engine Architecture
+The core problem is that ai.ts and analysis.ts are two separate systems that independently reinvent poker logic (badly). The fix: build a shared poker engine (src/lib/poker-engine/) that both the AI and the analysis engine consume.
+src/lib/poker-engine/
+├── equity.ts           # Monte Carlo equity calculator
+├── ranges.ts           # Preflop hand range definitions by position
+├── position.ts         # Position utilities (UTG, MP, CO, BTN, SB, BB)
+├── draws.ts            # Draw detection (flush draw, OESD, gutshot, etc.)
+├── board.ts            # Board texture analysis (wet/dry, paired, monotone)
+├── decision.ts         # Decision framework used by both AI and analysis
+└── index.ts            # Re-exports
+Both ai.ts and analysis.ts become thin wrappers:
+- AI calls the decision framework with personality-based adjustments (deviation from optimal)
+- Analysis calls the same framework without deviations to compute what the optimal play was
+This means the analysis is guaranteed to be consistent with what a "perfect" version of the AI would do.
+Does this architecture look right so far?
+# Questions
+Does the shared poker engine architecture with separate modules for equity, ranges, draws, board texture, and decisions make sense?
+Looks good, continue
+Design Section 2: Monte Carlo Equity Calculator (equity.ts)
+What it does: Given hero's hole cards, the community cards, and the number of opponents, simulate N random rollouts to estimate hero's probability of winning.
+Algorithm:
+1. Remove known cards (hero's hole + community) from the deck
+2. For each simulation (N=1000 default):
+   - Deal random hole cards to each opponent from remaining cards
+   - Deal remaining community cards to complete the board
+   - Evaluate all hands, determine winner
+   - Tally wins/ties for hero
+3. equity = (wins + ties/numPlayers) / N
+Performance: With the existing evaluateHand() (C(7,5)=21 combinations per hand), 1000 sims with 4 opponents = ~84,000 hand evaluations. On modern JS engines, each evaluation takes ~1-5 microseconds, so total 80-400ms. For AI decisions during play, we can reduce to 500 sims (40-200ms) which is fast enough to feel instant.
+API:
+interface EquityResult {
+  equity: number;       // 0-1, probability of winning
+  samples: number;      // number of simulations run
+  wins: number;
+  ties: number;
+  losses: number;
+}
+function calculateEquity(
+  holeCards: Card[],
+  communityCards: Card[],
+  numOpponents: number,
+  samples?: number,     // default 1000
+): EquityResult
+Key detail — equity vs. hand strength: The current system's strength (0-1 normalized hand rank) measures absolute hand quality. Equity measures probability of winning against opponents. A pair of aces on a board of 4h 5h 6h 7h has high absolute strength (pair) but low equity (any heart or 8 or 3 beats it). Equity is what matters for decisions.
+---
+Design Section 3: Preflop Range Charts (ranges.ts)
+What it does: Defines which hands to play from each position, for different action scenarios.
+Position system (for a full-ring 9-player table, scales down for fewer players):
+Seats from BTN	Position
+7	Under the Gun
+6	UTG+1
+5	Middle Position
+4	MP+1 (Lojack)
+3	Hijack
+2	Cutoff
+1	Button
+SB	Small Blind
+BB	Big Blind
+For fewer than 9 players, positions are dropped from early position first (no UTG in 6-max, etc.).
+Hand representation: Each starting hand is one of 169 canonical hands: 13 pairs (AA-22), 78 suited combos (AKs-32s), 78 offsuit combos (AKo-32o). Stored as a string like "AKs", "TT", "97o".
+Range data structure:
+type HandCombo = string;  // "AKs", "TT", "72o", etc.
+interface PositionRanges {
+  openRaise: Set<HandCombo>;     // hands to open-raise with (no action before)
+  call3Bet: Set<HandCombo>;      // hands to call a 3-bet with
+  fourBet: Set<HandCombo>;       // hands to 4-bet with
+  callOpen: Set<HandCombo>;      // hands to call an open-raise (for BB defense, etc.)
+  threeBet: Set<HandCombo>;      // hands to 3-bet with
+}
+Range sizes (approximate GTO):
+Position	Open-raise %
+UTG	~15% (25 hands)
+MP	~18%
+CO	~27%
+BTN	~40%
+SB	~35% (3-bet or fold)
+BB	N/A (defending)
+This data is hardcoded as sets of hand combos — it's ~5-8KB of data, negligible for bundle size.
+---
+Design Section 4: Draw Detection & Board Texture (draws.ts, board.ts)
+Draw detection — Analyze hero's hole cards + community cards:
+- Flush draw: 4 cards of same suit (9 outs, ~35% equity on flop)
+- Open-ended straight draw (OESD): 4 consecutive ranks with room on both ends (8 outs, ~31%)
+- Gutshot: Inside straight draw (4 outs, ~17%)
+- Combo draw: Flush draw + straight draw combined (12-15 outs, ~45-54%)
+- Backdoor draws: 3 to a flush or 3 to a straight (partial equity)
+interface DrawInfo {
+  flushDraw: boolean;
+  flushDrawOuts: number;
+  oesD: boolean;           // open-ended straight draw
+  gutshot: boolean;
+  straightDrawOuts: number;
+  backdoorFlush: boolean;
+  backdoorStraight: boolean;
+  totalOuts: number;
+  drawEquity: number;      // estimated equity from draws alone
+}
+Board texture analysis — Categorize the board:
+- Wetness: How many draws are possible (monotone/two-tone/rainbow, connected/disconnected)
+- Pairing: Board has a pair (full house possible)
+- High card texture: Broadway-heavy vs low cards
+- Coordinated vs dry: Jh Th 9s (very wet) vs Kd 7c 2h (very dry)
+interface BoardTexture {
+  wetness: 'dry' | 'semi-wet' | 'wet' | 'very-wet';
+  isMonotone: boolean;
+  isTwoTone: boolean;
+  isRainbow: boolean;
+  isPaired: boolean;
+  isTrips: boolean;
+  highCardCount: number;    // number of broadway cards (T+)
+  connectedness: number;    // 0-1, how connected the board is
+  possibleStraights: number;
+  possibleFlushes: boolean;
+}
+Board texture matters for bet sizing — on wet boards, you should bet larger to deny equity to draws. On dry boards, smaller bets work.
+---
+Design Section 5: Decision Framework (decision.ts)
+This is the core — a single function that evaluates any poker situation and returns the optimal action with frequencies and EV.
+Inputs:
+interface DecisionContext {
+  holeCards: Card[];
+  communityCards: Card[];
+  position: Position;
+  round: BettingRound;
+  pot: number;
+  toCall: number;
+  currentBet: number;      // highest bet on the table
+  stack: number;            // hero's remaining stack
+  bigBlind: number;
+  numActivePlayers: number;
+  numPlayersInHand: number;
+  isFirstToAct: boolean;
+  facingRaise: boolean;     // did someone raise before us
+  raiserPosition?: Position;
+  actionHistory: PlayerAction[];  // all actions this hand
+}
+Output:
+interface DecisionResult {
+  optimalAction: ActionType;
+  optimalAmount?: number;
+  frequencies: { fold: number; call: number; raise: number };
+  reasoning: string;        // human-readable explanation
+  equity: number;           // Monte Carlo equity
+  potOdds: number;
+  impliedOdds: number;
+  spr: number;              // stack-to-pot ratio
+  draws: DrawInfo;
+  boardTexture: BoardTexture;
+  evByAction: {
+    fold: number;
+    call: number;
+    raise: number;
+  };
+}
+Decision logic (preflop):
+1. Determine position → look up range charts
+2. If no action before us → check if hand is in open-raise range
+3. If facing a raise → check 3-bet range, call range
+4. If facing a 3-bet → check 4-bet range, call range
+5. Frequencies are based on range inclusion + position
+Decision logic (postflop):
+1. Calculate equity via Monte Carlo
+2. Detect draws
+3. Analyze board texture
+4. Calculate pot odds: toCall / (pot + toCall)
+5. Calculate SPR: stack / pot
+6. EV of each action:
+   - EV(fold) = 0 (always)
+   - EV(call) = equity * (pot + toCall) - (1 - equity) * toCall
+   - EV(raise) = more complex: fold equity from opponents + equity when called * larger pot - cost of raise
+7. Bet sizing:
+   - Dry board → 25-33% pot
+   - Semi-wet board → 50-66% pot
+   - Wet board → 75-100% pot
+   - Strong draws → overbet (125%+ pot)
+8. Frequencies derived from EV comparison:
+   - If EV(raise) >> EV(call) → high raise frequency
+   - If EV(call) > 0 but EV(raise) ≈ EV(call) → mixed call/raise
+   - If all EVs ≤ 0 → high fold frequency
+The reasoning field is key for the analysis UI — it explains why a particular action is optimal: "You have 45% equity with a combo draw. Pot odds require 28%. Calling is +EV at $4.30/hand. Raising is even better because you have fold equity against one-pair hands."
+---
+Design Section 6: AI Player Overhaul (ai.ts)
+The AI becomes a thin wrapper around DecisionResult with personality-based deviations:
+function getAIDecision(params: AIDecisionParams): AIDecisionResult {
+  // 1. Get optimal decision from the shared engine
+  const optimal = evaluateDecision(buildContext(params));
+
+  // 2. Apply personality deviations
+  return applyPersonalityDeviations(optimal, params.player.personality);
+}
+Personality deviations:
+Personality	Deviation from optimal
+TAG	Plays ~95% of optimal ranges, slightly tighter. Rarely bluffs.
+LAG	Opens ~130% of optimal ranges, 3-bets wider. Higher bluff frequency.
+Tight-passive	Opens ~80% of optimal ranges. Rarely raises, mostly calls. Checks strong hands.
+Loose-passive	Opens ~150% of optimal ranges. Calls too much, rarely raises. Station.
+Added dimension: tilt/adaptation — Each AI tracks win/loss over recent hands. After losing big, LAG players might loosen up more (tilting). TAG players might tighten up. This creates dynamic gameplay rather than static opponents.
+---
+Design Section 7: Analysis Engine Overhaul (analysis.ts)
+The analysis becomes simple:
+1. For each round where hero acted, call evaluateDecision() with the game state at that point
+2. Compare hero's action vs the optimal action
+3. Calculate EV loss as EV(optimal) - EV(hero's action) using the evByAction from the decision result
+4. Use the reasoning field for detailed mistake descriptions
+New analysis data:
+interface Decision {
+  // ... existing fields ...
+  equity: number;
+  potOdds: number;
+  spr: number;
+  draws: DrawInfo;
+  boardTexture: BoardTexture;
+  reasoning: string;           // NEW: explains why optimal
+  evByAction: {                // NEW: EV of each option
+    fold: number;
+    call: number;
+    raise: number;
+  };
+  betSizeAnalysis?: {          // NEW: was the sizing correct?
+    heroSize: number;
+    optimalSize: number;
+    sizingError: number;       // in BB
+  };
+}
+No more random noise — The analysis produces deterministic results. Same hand → same analysis, every time.
+---
+Design Section 8: Files Changed
+File	Change
+src/lib/poker-engine/equity.ts	New — Monte Carlo simulator
+src/lib/poker-engine/ranges.ts	New — 169-hand preflop range charts by position
+src/lib/poker-engine/position.ts	New — Position utilities
+src/lib/poker-engine/draws.ts	New — Draw detection
+src/lib/poker-engine/board.ts	New — Board texture analysis
+src/lib/poker-engine/decision.ts	New — Core decision framework
+src/lib/poker-engine/index.ts	New — Re-exports
+src/lib/ai.ts	Major rewrite — Thin wrapper over decision engine
+src/lib/analysis.ts	Major rewrite — Uses decision engine for correct analysis
+src/types/poker.ts	Extend — New types for draws, board texture, position, etc.
+src/store/gameStore.ts	Modify — Pass position info to AI, store richer HandHistory
+src/components/analysis/*	Modify — Display new analysis data (equity, draws, reasoning, EV by action)
+The evaluator (evaluator.ts) and deck (deck.ts) remain unchanged — they're already correct.
+---
+Does this overall design look right? Any section you want to adjust before I write the design doc?
+# Questions
+Does the full design for the AI player + analysis engine overhaul look correct? This covers: shared poker engine architecture, Monte Carlo equity, preflop range charts, draw/board analysis, decision framework, AI personality deviations, and analysis engine rewrite.
+Looks good, proceed
+# Todos
+[✓]
+Explore current AI player and analysis engine code thoroughly
+[✓]
+Ask clarifying questions about desired depth/accuracy
+[✓]
+Propose approaches and present design
+[•]
+Write design doc
+[ ]
+Transition to implementation plan (writing-plans skill)
+# Wrote docs/plans/2026-03-19-ai-analysis-engine-overhaul-design.md
+# AI Player & Analysis Engine Overhaul — Design
+**Date:** 2026-03-19
+**Status:** Approved
+## Problem
+Both the AI player (`ai.ts`) and analysis engine (`analysis.ts`) use oversimplified heuristics:
+- **No equity calculation** — Decisions use `getBestHand().strength` (absolute hand rank) instead of actual probability of winning. A flush draw with 45% equity shows as "High Card" strength ~0.2.
+- **No position awareness** — AI plays the same from UTG as from the button. Analysis doesn't consider position.
+- **No draw detection** — Neither system recognizes flush draws, straight draws, or combo draws.
+- **Hardcoded frequency buckets** — Analysis uses 3 static tiers (strong/medium/weak) with random noise. Same spot produces different "optimal" advice each run.
+- **No bet sizing analysis** — Only checks fold/call/raise category, ignoring sizing.
+- **No opponent modeling** — AI ignores stack-to-pot ratio, board texture, and prior action.
+- **Invented EV formula** — `evLoss = freqDiff * potInBB * (1 - strength) * 0.5` has no theoretical basis.
+## Architecture
+Build a shared poker engine (`src/lib/poker-engine/`) consumed by both AI and analysis:
+```
+src/lib/poker-engine/
+├── equity.ts        # Monte Carlo equity calculator
+├── ranges.ts        # Preflop hand range definitions by position
+├── position.ts      # Position utilities (UTG through BB)
+├── draws.ts         # Draw detection (flush, OESD, gutshot, combo, backdoor)
+├── board.ts         # Board texture analysis (wet/dry, paired, monotone)
+├── decision.ts      # Core decision framework (EV-based)
+└── index.ts         # Re-exports
+```
+- **AI** calls the decision framework with personality-based deviations
+- **Analysis** calls the same framework without deviations to compute optimal play
+- Both share identical equity, range, draw, and board logic
+## Module 1: Monte Carlo Equity (`equity.ts`)
+Given hero's hole cards, community cards, and number of opponents, run N simulated rollouts:
+1. Remove known cards from deck
+2. For each simulation:
+   - Deal random hole cards to each opponent
+   - Deal remaining community cards
+   - Evaluate all hands, determine winner
+   - Tally wins/ties for hero
+3. `equity = (wins + ties/numPlayers) / N`
+```typescript
+interface EquityResult {
+  equity: number;       // 0-1
+  samples: number;
+  wins: number;
+  ties: number;
+  losses: number;
+}
+function calculateEquity(
+  holeCards: Card[],
+  communityCards: Card[],
+  numOpponents: number,
+  samples?: number,     // default 1000
+): EquityResult
+```
+**Performance:** 1000 sims × 4 opponents × 21 combos/hand ≈ 84K evaluations ≈ 80-400ms. AI can use 500 sims for faster decisions.
+## Module 2: Preflop Range Charts (`ranges.ts`)
+169 canonical starting hands (13 pairs + 78 suited + 78 offsuit). Position-specific ranges:
+| Position | Open-raise % | 3-bet % |
+|----------|-------------|---------|
+| UTG      | ~15%        | ~4%     |
+| MP       | ~18%        | ~5%     |
+| CO       | ~27%        | ~7%     |
+| BTN      | ~40%        | ~9%     |
+| SB       | ~35%        | N/A     |
+| BB       | N/A (defend) | ~10%   |
+```typescript
+type HandCombo = string; // "AKs", "TT", "72o"
+interface PositionRanges {
+  openRaise: Set<HandCombo>;
+  threeBet: Set<HandCombo>;
+  callOpen: Set<HandCombo>;
+  call3Bet: Set<HandCombo>;
+  fourBet: Set<HandCombo>;
+}
+```
+For fewer than 9 players, early positions are dropped first.
+## Module 3: Position Utilities (`position.ts`)
+Maps seat index relative to dealer → position name. Handles 2-9 player tables.
+```typescript
+type Position = 'UTG' | 'UTG1' | 'MP' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
+function getPosition(seatIndex: number, dealerIndex: number, numPlayers: number): Position
+function getPositionRanges(position: Position): PositionRanges
+```
+## Module 4: Draw Detection (`draws.ts`)
+Analyzes hole cards + community cards for drawing hands:
+```typescript
+interface DrawInfo {
+  flushDraw: boolean;
+  flushDrawOuts: number;
+  oesD: boolean;
+  gutshot: boolean;
+  straightDrawOuts: number;
+  backdoorFlush: boolean;
+  backdoorStraight: boolean;
+  totalOuts: number;
+  drawEquity: number;  // 2/47 per out on flop, 2/46 per out on turn (rule of 2)
+}
+function detectDraws(holeCards: Card[], communityCards: Card[]): DrawInfo
+```
+## Module 5: Board Texture (`board.ts`)
+Categorizes the community cards:
+```typescript
+interface BoardTexture {
+  wetness: 'dry' | 'semi-wet' | 'wet' | 'very-wet';
+  isMonotone: boolean;
+  isTwoTone: boolean;
+  isRainbow: boolean;
+  isPaired: boolean;
+  isTrips: boolean;
+  highCardCount: number;     // broadway cards (T+)
+  connectedness: number;     // 0-1
+  possibleStraights: number;
+  possibleFlushes: boolean;
+}
+function analyzeBoard(communityCards: Card[]): BoardTexture
+```
+Board texture drives bet sizing: dry boards → small bets, wet boards → large bets.
+## Module 6: Decision Framework (`decision.ts`)
+Core function that evaluates any poker situation:
+```typescript
+interface DecisionContext {
+  holeCards: Card[];
+  communityCards: Card[];
+  position: Position;
+  round: BettingRound;
+  pot: number;
+  toCall: number;
+  currentBet: number;
+  stack: number;
+  bigBlind: number;
+  numActivePlayers: number;
+  numPlayersInHand: number;
+  isFirstToAct: boolean;
+  facingRaise: boolean;
+  raiserPosition?: Position;
+  actionHistory: PlayerAction[];
+}
+interface DecisionResult {
+  optimalAction: ActionType;
+  optimalAmount?: number;
+  frequencies: { fold: number; call: number; raise: number };
+  reasoning: string;        // human-readable explanation
+  equity: number;
+  potOdds: number;
+  impliedOdds: number;
+  spr: number;
+  draws: DrawInfo;
+  boardTexture: BoardTexture;
+  evByAction: {
+    fold: number;
+    call: number;
+    raise: number;
+  };
+}
+function evaluateDecision(ctx: DecisionContext): DecisionResult
+```
+### Preflop logic:
+1. Determine position → look up range charts
+2. No prior action → check open-raise range
+3. Facing raise → check 3-bet/call ranges
+4. Facing 3-bet → check 4-bet/call ranges
+### Postflop logic:
+1. Calculate equity via Monte Carlo
+2. Detect draws, analyze board texture
+3. Calculate pot odds: `toCall / (pot + toCall)`
+4. Calculate SPR: `stack / pot`
+5. EV of each action:
+   - `EV(fold) = 0`
+   - `EV(call) = equity × (pot + toCall) - (1 - equity) × toCall`
+   - `EV(raise) = foldEquity × pot + (1 - foldEquity) × [equity × (pot + raiseSize) - (1 - equity) × raiseSize]`
+6. Bet sizing by board texture:
+   - Dry → 25-33% pot
+   - Semi-wet → 50-66% pot
+   - Wet → 75-100% pot
+7. Frequencies derived from EV comparison
+### Reasoning generation:
+Every decision includes a human-readable explanation: "You have 45% equity with a combo draw. Pot odds require 28%. Calling is +EV at $4.30. Raising is better because you have fold equity against one-pair hands."
+## AI Player Overhaul (`ai.ts`)
+Thin wrapper over decision engine with personality deviations:
+```typescript
+function getAIDecision(params: AIDecisionParams): AIDecisionResult {
+  const optimal = evaluateDecision(buildContext(params));
+  return applyPersonalityDeviations(optimal, params.player.personality);
+}
+```
+### Personality deviations:
+| Personality | Range adjustment | Aggression | Bluff freq | Behavior |
+|-------------|-----------------|------------|------------|----------|
+| TAG | 95% of optimal | Slightly above optimal | Low (5%) | Tight, aggressive when entering |
+| LAG | 130% of optimal | High | High (20%) | Wide opens, frequent 3-bets |
+| Tight-passive | 80% of optimal | Very low | Minimal (3%) | Calls too much, rarely raises |
+| Loose-passive | 150% of optimal | Low | Low (8%) | Calls everything, never folds |
+### Dynamic adaptation:
+Each AI tracks recent results. After losing big, LAG players loosen further (tilting). TAG players tighten. Creates dynamic gameplay.
+## Analysis Engine Overhaul (`analysis.ts`)
+For each round where hero acted:
+1. Reconstruct game state at that point
+2. Call `evaluateDecision()` to get optimal play
+3. EV loss = `EV(optimal action) - EV(hero's action)` from `evByAction`
+4. Use `reasoning` for detailed mistake descriptions
+5. Include bet sizing analysis when hero raised/bet
+No random noise. Same hand → same analysis, every time.
+### Enhanced Decision type:
+```typescript
+interface Decision {
+  round: BettingRound;
+  heroAction: ActionType;
+  heroAmount?: number;
+  optimalAction: ActionType;
+  optimalAmount?: number;
+  optimalFrequencies: { fold: number; call: number; raise: number };
+  evDiff: number;
+  equity: number;
+  potOdds: number;
+  spr: number;
+  draws: DrawInfo;
+  boardTexture: BoardTexture;
+  reasoning: string;
+  evByAction: { fold: number; call: number; raise: number };
+  betSizeAnalysis?: {
+    heroSize: number;
+    optimalSize: number;
+    sizingError: number;
+  };
+}
+```
+## UI Updates (analysis components)
+The analysis dashboard components are updated to display richer data:
+- **HandTimeline:** Show equity at each street, draw info
+- **DecisionChart:** Show EV by action (not just frequencies)
+- **MistakeCard:** Use `reasoning` for detailed explanations, show equity/pot odds
+- **HeroGrade:** EV loss calculated from real EV differences
+## Files Changed
+| File | Change |
+|------|--------|
+| `src/lib/poker-engine/equity.ts` | New |
+| `src/lib/poker-engine/ranges.ts` | New |
+| `src/lib/poker-engine/position.ts` | New |
+| `src/lib/poker-engine/draws.ts` | New |
+| `src/lib/poker-engine/board.ts` | New |
+| `src/lib/poker-engine/decision.ts` | New |
+| `src/lib/poker-engine/index.ts` | New |
+| `src/lib/ai.ts` | Major rewrite |
+| `src/lib/analysis.ts` | Major rewrite |
+| `src/types/poker.ts` | Extend with new types |
+| `src/store/gameStore.ts` | Pass position info, richer HandHistory |
+| `src/components/analysis/*.tsx` | Display new analysis data |
+# Todos
+[✓]
+Explore current AI player and analysis engine code thoroughly
+[✓]
+Ask clarifying questions about desired depth/accuracy
+[✓]
+Propose approaches and present design
+[✓]
+Write design doc
+[•]
+Transition to implementation plan (writing-plans skill)
+Design doc saved. Now let me invoke the writing-plans skill to create the implementation plan.
+→ Skill "writing-plans"
+I'm using the writing-plans skill to create the implementation plan.
+This is a large overhaul with 7 new modules + rewrites of 2 existing files + type extensions + UI updates. Let me first check if we have a test framework set up:
+# Check for test framework
+$ cat package.json | grep -E '"(vitest|jest|mocha|test)"'
+→ Read package.json
+No test framework. The plan needs to include setting up Vitest (natural fit with Vite). Now let me also check the gameStore to understand how position info needs to be threaded through:
+→ Read src/store/gameStore.ts
+Goal
+Build a complete, modular Poker Practice App (PPA) — a single-player Texas Hold'em practice tool where the user (Hero) plays against 1-8 AI opponents. After each hand, the user reviews a detailed GTO-inspired analysis dashboard showing mistakes, optimal frequencies, and EV loss.
+Current immediate goal: Overhaul the AI player and analysis engine — the two most important features of the app. The current implementations use oversimplified heuristics. A comprehensive design has been approved and the design doc has been written. The next step is to write the detailed implementation plan using the writing-plans skill (which has already been loaded), then execute it.
+Instructions
+- Tech stack: React 18+ with TypeScript, Vite, Tailwind CSS v4 (dark mode default), Zustand (state management), Recharts (data visualization), Lucide React (icons)
+- No GTO data during play: The play mode is clean — no hints, no frequencies, no color-coding. Analysis is revealed only after the hand ends.
+- Multi-player support: 2-9 total players (Hero + 1-8 AI opponents), each AI has independent personality (TAG, LAG, tight-passive, loose-passive)
+- Mobile responsive: Mobile-first with Tailwind breakpoints, works in portrait and landscape
+- Architecture: Monolithic Zustand store with slices, single source of truth, hand history captured as state transitions
+- Design document: The approved overall design spec is at docs/plans/2026-03-19-poker-practice-app-design.md
+- AI/Analysis overhaul design: The approved design for the engine overhaul is at docs/plans/2026-03-19-ai-analysis-engine-overhaul-design.md
+- Workflow: Uses superpowers skills — brainstorming → writing-plans → executing-plans (subagent-driven development)
+- Branch: All work is on main branch
+- The writing-plans skill has already been loaded. The next agent should proceed directly to writing the implementation plan based on the approved design doc. Do NOT re-run brainstorming — the design is approved.
+- No test framework exists yet — Vitest needs to be set up as part of the implementation plan (natural fit with Vite)
+Discoveries
+- Tailwind CSS v4 requires Node >= 20; .nvmrc pins Node 22 but current environment runs Node 18 (build still works)
+- Tailwind CSS v4 uses @import "tailwindcss" syntax and @tailwindcss/vite plugin
+- Production bundle is ~586KB JS (React + Recharts) — Vite warns about chunk size but expected
+- The hand evaluator uses C(n,5) combinations with a 10-tier base-15 fractional tiebreaker strength system — this is correct and stays unchanged
+- action.amount in PlayerAction represents potDelta (additional chips put in), NOT total bet commitment
+- The analysis engine uses the actual bigBlind from HandHistory (with fallback to estimation)
+- Mobile layout: Portrait uses new percentage-based seat positioning (POSITION_COORDS) with h-full table and h-dvh overflow-hidden AppShell. Landscape uses the original fixed Tailwind class positioning (POSITION_CLASSES) with aspect-[16/10] scrollable layout. A useIsLandscape() hook (using useSyncExternalStore + matchMedia) switches between them.
+Critical problems identified in current AI + analysis (motivating the overhaul):
+AI (ai.ts):
+1. No position awareness — plays identically from UTG and BTN
+2. No opponent modeling — ignores prior action, SPR, stack depth
+3. No draw awareness — getBestHand().strength doesn't account for flush/straight draws
+4. Fixed bet sizing — always 2.5-3.5x preflop, simple pot fraction postflop
+5. No multi-street planning — each decision made in isolation
+Analysis (analysis.ts):
+1. Hardcoded frequency buckets — 3 static tiers with random ±5% noise (non-deterministic!)
+2. No draw equity consideration — marks correct flush draw calls as mistakes
+3. Invented EV formula — evLoss = freqDiff * potInBB * (1 - strength) * 0.5 has no theoretical basis
+4. No bet sizing analysis — only checks fold/call/raise category
+5. Uses different hand strength logic than the AI (duplicate getPreflopStrength with different formulas)
+Approved design decisions for the overhaul:
+- Monte Carlo equity calculator (1000 sims default, 500 for AI speed) — replaces heuristic strength
+- Full positional preflop range charts (169 hands × 9 positions) — replaces single preflopRange threshold
+- Draw detection (flush draw, OESD, gutshot, combo draw, backdoor draws)
+- Board texture analysis (wet/dry/paired/monotone/connected) — drives bet sizing
+- Shared decision framework (decision.ts) consumed by both AI and analysis — guarantees consistency
+- EV-based decisions: EV(fold)=0, EV(call)=equity*(pot+toCall)-(1-equity)*toCall, EV(raise) includes fold equity
+- AI personalities as deviations from optimal (TAG=95% of ranges, LAG=130%, etc.) + dynamic tilt/adaptation
+- Deterministic analysis — no random noise, same hand → same analysis every time
+- Rich reasoning strings — analysis explains why each action is optimal
+- Bet sizing analysis — compares hero's sizing to optimal sizing by board texture
+Accomplished
+All initial implementation (12 tasks) — DONE
+Full poker game with settings, gameplay, showdown, and analysis phases.
+Code review bug fixes — DONE
+Fixed: showdown phase guard, getMinRaise, 9-player seat collision, EV polarity, showdown comparison + split pots, bigBlind in analysis.
+Showdown result screen — DONE
+PokerTable stays mounted during showdown, revealing all remaining players' cards. Winner gets green glow highlight. ShowdownOverlay shows winner name + hand description + "View Analysis" / "Next Hand" buttons.
+Mobile responsive layout — DONE
+- Portrait: percentage-based seat positioning (POSITION_COORDS), h-full table, viewport-locked
+- Landscape: original fixed Tailwind class positioning (POSITION_CLASSES), aspect-[16/10], scrollable
+- useIsLandscape() hook switches between the two layouts live
+- Community cards responsive (w-10 h-14 mobile, md:w-14 md:h-20 desktop)
+- Player seat cards responsive (w-8 h-11 mobile, md:w-12 md:h-16 desktop)
+AI/Analysis overhaul design — DONE (design approved, doc written)
+- Design doc saved at docs/plans/2026-03-19-ai-analysis-engine-overhaul-design.md
+- All user questions answered (Monte Carlo equity, full positional ranges, strong AI + deep analysis)
+- writing-plans skill has been loaded and is ready to use
+What needs to be done next:
+1. IMMEDIATE: Write the implementation plan for the AI/analysis overhaul using the writing-plans skill (already loaded). The plan should cover:
+   - Task 0: Set up Vitest test framework
+   - Task 1: src/lib/poker-engine/position.ts — Position utilities
+   - Task 2: src/lib/poker-engine/equity.ts — Monte Carlo equity calculator
+   - Task 3: src/lib/poker-engine/ranges.ts — Preflop range charts
+   - Task 4: src/lib/poker-engine/draws.ts — Draw detection
+   - Task 5: src/lib/poker-engine/board.ts — Board texture analysis
+   - Task 6: src/lib/poker-engine/decision.ts — Core decision framework
+   - Task 7: Rewrite src/lib/ai.ts — Thin wrapper over decision engine
+   - Task 8: Rewrite src/lib/analysis.ts — Uses decision engine
+   - Task 9: Extend src/types/poker.ts — New types
+   - Task 10: Modify src/store/gameStore.ts — Pass position info
+   - Task 11: Update src/components/analysis/*.tsx — Display richer data
+2. Then execute the plan using subagent-driven development
+Remaining lower-priority items:
+Issue	Description
+I2	advanceRound recursive calls when all-in
+I6	No side pot handling for multi-way all-in
+I8	BettingRound includes unused 'showdown' value
+M1	Duplicate RANK_VALUES definitions
+M4	No burn cards dealt before community cards
+M7	No game state persistence (refresh loses progress)
+Relevant files / directories
+/Users/linvg/Documents/Workspace/PPA/
+├── docs/plans/
+│   ├── 2026-03-19-poker-practice-app-design.md                    # Original design spec
+│   ├── 2026-03-19-showdown-screen-and-mobile-fit.md               # Showdown + mobile plan
+│   ├── 2026-03-19-mobile-responsive-layout-design.md              # Mobile layout design
+│   ├── 2026-03-19-mobile-responsive-layout.md                     # Mobile layout implementation plan
+│   └── 2026-03-19-ai-analysis-engine-overhaul-design.md           # ★ AI/Analysis overhaul design (APPROVED, use this)
+├── src/
+│   ├── types/
+│   │   └── poker.ts                    # All TypeScript types — NEEDS EXTENSION with DrawInfo, BoardTexture, Position, DecisionContext, DecisionResult
+│   ├── lib/
+│   │   ├── poker-engine/               # ★ NEW DIRECTORY — shared poker engine (to be created)
+│   │   │   ├── equity.ts              # Monte Carlo equity calculator
+│   │   │   ├── ranges.ts             # 169-hand preflop range charts by position
+│   │   │   ├── position.ts           # Position utilities (UTG through BB)
+│   │   │   ├── draws.ts              # Draw detection (flush, OESD, gutshot, combo, backdoor)
+│   │   │   ├── board.ts              # Board texture analysis
+│   │   │   ├── decision.ts           # Core decision framework (EV-based)
+│   │   │   └── index.ts              # Re-exports
+│   │   ├── deck.ts                     # Card/deck utilities (unchanged)
+│   │   ├── evaluator.ts               # Hand strength evaluator (unchanged)
+│   │   ├── ai.ts                       # ★ AI decision logic — MAJOR REWRITE (thin wrapper over decision engine)
+│   │   └── analysis.ts                # ★ GTO analysis engine — MAJOR REWRITE (uses decision engine)
+│   ├── store/
+│   │   └── gameStore.ts               # Zustand store — MODIFY to pass position info to AI, richer HandHistory
+│   ├── components/
+│   │   ├── layout/
+│   │   │   └── AppShell.tsx           # Nav bar + responsive container (uses useIsLandscape)
+│   │   ├── settings/
+│   │   │   └── GameSettings.tsx       # Game configuration screen
+│   │   ├── game/
+│   │   │   ├── PokerTable.tsx         # Main table (uses useIsLandscape for layout switching)
+│   │   │   ├── PlayerSeat.tsx         # Player display + useIsLandscape hook (exported)
+│   │   │   │                          #   - POSITION_COORDS (portrait) and POSITION_CLASSES (landscape)
+│   │   │   ├── CommunityCards.tsx     # Board cards (responsive sizing)
+│   │   │   ├── PotDisplay.tsx         # Pot amount display
+│   │   │   └── ActionControls.tsx     # Fold/Call/Raise buttons + bet slider
+│   │   └── analysis/                   # ★ ALL FILES NEED UPDATE to display richer analysis data
+│   │       ├── AnalysisDashboard.tsx   # Main analysis view
+│   │       ├── HeroGrade.tsx          # SVG circular grade gauge
+│   │       ├── HandTimeline.tsx       # Step-by-step hand replay — add equity, draws
+│   │       ├── DecisionChart.tsx      # Recharts bar chart — add EV by action
+│   │       ├── MistakeCard.tsx        # Expandable mistake card — use reasoning strings
+│   │       └── EVTracker.tsx          # Recharts cumulative EV line chart
+│   ├── App.tsx                         # Phase-based routing
+│   ├── main.tsx                        # React entry point
+│   └── index.css                       # Tailwind CSS v4 imports
+├── package.json                        # No test framework yet — add vitest
+├── vite.config.ts
+├── tsconfig.json / tsconfig.app.json / tsconfig.node.json
+└── .nvmrc                              # Node 22
+Git state: On main branch. Working tree has uncommitted changes (mobile layout fixes + design doc). Last build passes with zero TS errors.

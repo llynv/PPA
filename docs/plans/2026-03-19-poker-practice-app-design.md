@@ -95,10 +95,10 @@ The play mode is clean — no hints, no frequencies, no color-coding of decision
 
 - 2-9 total players (Hero + 1-8 AI opponents)
 - Each AI has independent rule-based strategy with personality variation:
-  - Tight-Aggressive (TAG): plays fewer hands, bets strong
-  - Loose-Aggressive (LAG): plays more hands, bluffs more
-  - Tight-Passive (rock): plays few hands, mostly calls
-  - Loose-Passive (calling station): plays many hands, rarely raises
+    - Tight-Aggressive (TAG): plays fewer hands, bets strong
+    - Loose-Aggressive (LAG): plays more hands, bluffs more
+    - Tight-Passive (rock): plays few hands, mostly calls
+    - Loose-Passive (calling station): plays many hands, rarely raises
 - Seats arranged dynamically around oval table based on player count
 - Dealer button rotates through all players
 
