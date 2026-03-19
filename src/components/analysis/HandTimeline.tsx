@@ -1,6 +1,10 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp } from "lucide-react";
-import type { Decision, BettingRound } from "../../types/poker";
+import { ChevronDown, ChevronRight } from "lucide-react";
+import type { Decision, BettingRound, Card } from "../../types/poker";
+import { suitSymbol, suitColor } from "../../lib/deck";
+import { useGameStore } from "../../store/gameStore";
+
+// ── Types & Constants ───────────────────────────────────────────────
 
 interface HandTimelineProps {
     decisions: Decision[];
@@ -16,10 +20,12 @@ const ROUND_LABELS: Record<BettingRound, string> = {
     showdown: "Showdown",
 };
 
+// ── Helpers ─────────────────────────────────────────────────────────
+
 function formatAction(action: string, amount?: number): string {
     const label = action.charAt(0).toUpperCase() + action.slice(1);
     if (amount != null && amount > 0) {
-        return `${label} $${amount}`;
+        return `${label} $${amount.toLocaleString()}`;
     }
     return label;
 }
@@ -28,304 +34,238 @@ function isCorrectAction(decision: Decision): boolean {
     return decision.heroAction === decision.optimalAction;
 }
 
-interface StepProps {
-    decision: Decision | undefined;
-    round: BettingRound;
-    isLast: boolean;
+function getDecisionColor(decision: Decision): {
+    text: string;
+    bg: string;
+    label: string;
+} {
+    if (isCorrectAction(decision)) {
+        return {
+            text: "text-emerald-400",
+            bg: "bg-emerald-500/10 border-emerald-500/30",
+            label: "Correct",
+        };
+    }
+    if (decision.evDiff >= 2) {
+        return {
+            text: "text-red-400",
+            bg: "bg-red-500/10 border-red-500/30",
+            label: "Major mistake",
+        };
+    }
+    if (decision.evDiff >= 0.5) {
+        return {
+            text: "text-amber-400",
+            bg: "bg-amber-500/10 border-amber-500/30",
+            label: "Minor mistake",
+        };
+    }
+    return {
+        text: "text-amber-400",
+        bg: "bg-amber-500/10 border-amber-500/30",
+        label: "Suboptimal",
+    };
 }
 
-function TimelineStep({ decision, round, isLast }: StepProps) {
-    const [expanded, setExpanded] = useState(false);
+function generateExplanation(decision: Decision): string {
+    if (decision.reasoning) return decision.reasoning;
 
+    const correct = isCorrectAction(decision);
+    const equityStr =
+        decision.equity != null
+            ? `${Math.round(decision.equity * 100)}% equity`
+            : null;
+    const potOddsStr =
+        decision.potOdds != null
+            ? `${Math.round(decision.potOdds * 100)}% pot odds`
+            : null;
+
+    if (correct) {
+        const parts = ["Good play."];
+        if (equityStr && potOddsStr) {
+            parts.push(
+                `With ${equityStr} facing ${potOddsStr}, ${formatAction(decision.heroAction).toLowerCase()} is the highest EV action.`,
+            );
+        } else if (equityStr) {
+            parts.push(
+                `With ${equityStr}, ${formatAction(decision.heroAction).toLowerCase()} is correct.`,
+            );
+        }
+        return parts.join(" ");
+    }
+
+    const parts = ["Suboptimal."];
+    parts.push(
+        `You ${formatAction(decision.heroAction).toLowerCase()} but ${formatAction(decision.optimalAction).toLowerCase()} was optimal.`,
+    );
+    if (decision.evDiff > 0) {
+        parts.push(`This cost ${decision.evDiff.toFixed(2)} BB in EV.`);
+    }
+    return parts.join(" ");
+}
+
+function getCommunityCardsAtStreet(
+    allCards: Card[],
+    street: BettingRound,
+): Card[] {
+    switch (street) {
+        case "preflop":
+            return [];
+        case "flop":
+            return allCards.slice(0, 3);
+        case "turn":
+            return allCards.slice(0, 4);
+        case "river":
+        case "showdown":
+            return allCards.slice(0, 5);
+    }
+}
+
+// ── Mini Card ───────────────────────────────────────────────────────
+
+function MiniCard({ card }: { card: Card }) {
+    const color =
+        suitColor(card.suit) === "red" ? "text-red-500" : "text-slate-800";
+    return (
+        <span
+            className={`inline-flex items-center justify-center w-6 h-8 bg-white rounded text-[10px] font-bold border border-slate-300 ${color}`}
+        >
+            {card.rank}
+            {suitSymbol(card.suit)}
+        </span>
+    );
+}
+
+// ── Street Section ──────────────────────────────────────────────────
+
+interface StreetSectionProps {
+    round: BettingRound;
+    decision: Decision | undefined;
+    communityCards: Card[];
+}
+
+function StreetSection({
+    round,
+    decision,
+    communityCards,
+}: StreetSectionProps) {
+    const [detailsOpen, setDetailsOpen] = useState(false);
     const hasDecision = decision != null;
-    const correct = hasDecision && isCorrectAction(decision);
 
-    // Colors: green if correct, red if mistake, gray if no decision
-    const dotColor = !hasDecision
-        ? "bg-slate-600"
-        : correct
-          ? "bg-emerald-500"
-          : "bg-red-500";
+    if (!hasDecision) {
+        return (
+            <div className="py-3 border-b border-slate-700/50 last:border-b-0 opacity-50">
+                <div className="flex items-center gap-3">
+                    <div className="w-3 h-3 rounded-full bg-slate-600 shrink-0" />
+                    <span className="text-sm font-medium text-slate-500">
+                        {ROUND_LABELS[round]}
+                    </span>
+                    <span className="text-sm text-slate-600">
+                        No decision made
+                    </span>
+                </div>
+            </div>
+        );
+    }
 
-    const lineColor = !hasDecision ? "bg-slate-700" : "bg-slate-600";
+    const { text, bg } = getDecisionColor(decision);
+    const explanation = generateExplanation(decision);
 
     return (
-        <div className="flex-1 min-w-0">
-            <button
-                onClick={() => hasDecision && setExpanded(!expanded)}
-                className="w-full text-left focus:outline-none"
-                disabled={!hasDecision}
-            >
-                {/* Step indicator row */}
-                <div className="flex items-center">
-                    <div
-                        className={`w-4 h-4 rounded-full shrink-0 ${dotColor}`}
-                    />
-                    {!isLast && (
-                        <div
-                            className={`flex-1 h-0.5 ${lineColor} ${!hasDecision ? "opacity-40" : ""}`}
-                        />
-                    )}
-                </div>
-
-                {/* Labels */}
-                <div className="mt-2 pr-2">
-                    <p className="text-sm font-medium text-slate-300">
-                        {ROUND_LABELS[round]}
-                    </p>
-                    {hasDecision ? (
-                        <p
-                            className={`text-sm ${correct ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                            {formatAction(
-                                decision.heroAction,
-                                decision.heroAmount,
-                            )}
-                        </p>
-                    ) : (
-                        <p className="text-sm text-slate-600">—</p>
-                    )}
-                    {hasDecision && (
-                        <span className="text-slate-500">
-                            {expanded ? (
-                                <ChevronUp className="w-3 h-3 mt-1" />
-                            ) : (
-                                <ChevronDown className="w-3 h-3 mt-1" />
-                            )}
-                        </span>
-                    )}
-                </div>
-            </button>
-
-            {/* Expanded detail */}
-            {expanded && decision && (
-                <div className="mt-2 p-3 bg-slate-700/50 rounded-lg text-sm space-y-1">
-                    <p className="text-slate-300">
-                        <span className="text-slate-500">Optimal:</span>{" "}
-                        {formatAction(
-                            decision.optimalAction,
-                            decision.optimalAmount,
-                        )}
-                    </p>
-                    <div className="text-slate-400">
-                        <p>
-                            Fold:{" "}
-                            {Math.round(decision.optimalFrequencies.fold * 100)}
-                            %
-                        </p>
-                        <p>
-                            Call:{" "}
-                            {Math.round(decision.optimalFrequencies.call * 100)}
-                            %
-                        </p>
-                        <p>
-                            Raise:{" "}
-                            {Math.round(
-                                decision.optimalFrequencies.raise * 100,
-                            )}
-                            %
-                        </p>
+        <div
+            className={`py-3 border-b border-slate-700/50 last:border-b-0`}
+        >
+            {/* Street header + board cards */}
+            <div className="flex items-center gap-3 mb-2">
+                <div
+                    className={`w-3 h-3 rounded-full shrink-0 ${isCorrectAction(decision) ? "bg-emerald-500" : decision.evDiff >= 2 ? "bg-red-500" : "bg-amber-500"}`}
+                />
+                <span className="text-sm font-medium text-slate-300">
+                    {ROUND_LABELS[round]}
+                </span>
+                {/* Board cards for this street */}
+                {communityCards.length > 0 && (
+                    <div className="flex gap-0.5">
+                        {communityCards.map((card, i) => (
+                            <MiniCard key={i} card={card} />
+                        ))}
                     </div>
-                    {/* Equity, Pot Odds, SPR */}
-                    {(decision.equity != null || decision.potOdds != null || decision.spr != null) && (
-                        <div className="flex flex-wrap gap-2 mt-1">
-                            {decision.equity != null && (
-                                <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 text-xs">
-                                    Equity: {(decision.equity * 100).toFixed(1)}%
-                                </span>
-                            )}
-                            {decision.potOdds != null && (
-                                <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 text-xs">
-                                    Pot Odds: {(decision.potOdds * 100).toFixed(1)}%
-                                </span>
-                            )}
-                            {decision.spr != null && (
-                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs">
-                                    SPR: {decision.spr.toFixed(1)}
-                                </span>
-                            )}
-                        </div>
-                    )}
-                    {/* Draw info */}
-                    {decision.draws != null && decision.draws.totalOuts > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-1">
-                            {decision.draws.flushDraw && (
-                                <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">
-                                    Flush draw
-                                </span>
-                            )}
-                            {decision.draws.oesD && (
-                                <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-xs">
-                                    OESD
-                                </span>
-                            )}
-                            {decision.draws.gutshot && (
-                                <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">
-                                    Gutshot
-                                </span>
-                            )}
+                )}
+            </div>
+
+            {/* Side-by-side: Hero action vs Optimal */}
+            <div className={`ml-6 rounded-lg border p-3 ${bg}`}>
+                <div className="flex items-start justify-between gap-4 mb-2">
+                    <div className="flex gap-4 text-sm">
+                        <div>
                             <span className="text-slate-500 text-xs">
-                                {decision.draws.totalOuts} outs ({(decision.draws.drawEquity * 100).toFixed(1)}%)
+                                You played:{" "}
+                            </span>
+                            <span className={`font-medium ${text}`}>
+                                {formatAction(
+                                    decision.heroAction,
+                                    decision.heroAmount,
+                                )}
                             </span>
                         </div>
-                    )}
-                    {/* Board texture */}
-                    {decision.boardTexture != null && (
-                        <p className="text-slate-500 text-xs mt-1">
-                            Board: {decision.boardTexture.wetness}
-                            {decision.boardTexture.isMonotone && ", monotone"}
-                            {decision.boardTexture.isPaired && ", paired"}
-                            {decision.boardTexture.isRainbow && ", rainbow"}
-                        </p>
-                    )}
-                    <p
-                        className={`font-medium ${decision.evDiff <= 0 ? "text-emerald-400" : "text-red-400"}`}
-                    >
-                        EV:{" "}
-                        {decision.evDiff === 0
-                            ? "0.00"
-                            : `-${decision.evDiff.toFixed(2)}`}{" "}
-                        BB
-                    </p>
-                </div>
-            )}
-        </div>
-    );
-}
-
-export function HandTimeline({ decisions }: HandTimelineProps) {
-    const decisionByRound = new Map(decisions.map((d) => [d.round, d]));
-
-    return (
-        <div className="bg-slate-800 rounded-xl p-6 shadow-lg">
-            <h3 className="text-lg font-semibold text-slate-100 mb-4">
-                Hand Timeline
-            </h3>
-
-            {/* Desktop: horizontal, Mobile: vertical */}
-            {/* Horizontal layout */}
-            <div className="hidden sm:flex gap-0">
-                {ROUND_ORDER.map((round, i) => (
-                    <TimelineStep
-                        key={round}
-                        round={round}
-                        decision={decisionByRound.get(round)}
-                        isLast={i === ROUND_ORDER.length - 1}
-                    />
-                ))}
-            </div>
-
-            {/* Mobile: vertical layout */}
-            <div className="sm:hidden space-y-3">
-                {ROUND_ORDER.map((round, i) => {
-                    const decision = decisionByRound.get(round);
-                    const hasDecision = decision != null;
-                    const correct = hasDecision && isCorrectAction(decision);
-                    const dotColor = !hasDecision
-                        ? "bg-slate-600"
-                        : correct
-                          ? "bg-emerald-500"
-                          : "bg-red-500";
-
-                    return (
-                        <MobileStep
-                            key={round}
-                            round={round}
-                            decision={decision}
-                            dotColor={dotColor}
-                            isLast={i === ROUND_ORDER.length - 1}
-                        />
-                    );
-                })}
-            </div>
-        </div>
-    );
-}
-
-interface MobileStepProps {
-    round: BettingRound;
-    decision: Decision | undefined;
-    dotColor: string;
-    isLast: boolean;
-}
-
-function MobileStep({ round, decision, dotColor, isLast }: MobileStepProps) {
-    const [expanded, setExpanded] = useState(false);
-    const hasDecision = decision != null;
-    const correct = hasDecision && isCorrectAction(decision);
-
-    return (
-        <div className="flex gap-3">
-            <div className="flex flex-col items-center">
-                <div className={`w-4 h-4 rounded-full shrink-0 ${dotColor}`} />
-                {!isLast && <div className="w-0.5 flex-1 bg-slate-700 mt-1" />}
-            </div>
-            <div className="flex-1 pb-3">
-                <button
-                    onClick={() => hasDecision && setExpanded(!expanded)}
-                    className="w-full text-left focus:outline-none"
-                    disabled={!hasDecision}
-                >
-                    <p className="text-sm font-medium text-slate-300">
-                        {ROUND_LABELS[round]}
-                    </p>
-                    {hasDecision ? (
-                        <p
-                            className={`text-sm ${correct ? "text-emerald-400" : "text-red-400"}`}
+                        <div>
+                            <span className="text-slate-500 text-xs">
+                                Optimal:{" "}
+                            </span>
+                            <span className="font-medium text-slate-200">
+                                {formatAction(
+                                    decision.optimalAction,
+                                    decision.optimalAmount,
+                                )}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                        <span
+                            className={`text-xs font-medium px-1.5 py-0.5 rounded ${isCorrectAction(decision) ? "bg-emerald-500/20 text-emerald-400" : "bg-red-500/20 text-red-400"}`}
                         >
-                            {formatAction(
-                                decision.heroAction,
-                                decision.heroAmount,
-                            )}
-                        </p>
+                            {isCorrectAction(decision)
+                                ? "0.00 BB"
+                                : `-${decision.evDiff.toFixed(2)} BB`}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Natural language explanation */}
+                <p className="text-slate-300 text-xs leading-relaxed">
+                    {explanation}
+                </p>
+
+                {/* Expandable details */}
+                <button
+                    onClick={() => setDetailsOpen(!detailsOpen)}
+                    className="flex items-center gap-1 mt-2 text-slate-500 hover:text-slate-300 text-xs transition-colors"
+                >
+                    {detailsOpen ? (
+                        <ChevronDown className="w-3 h-3" />
                     ) : (
-                        <p className="text-sm text-slate-600">—</p>
+                        <ChevronRight className="w-3 h-3" />
                     )}
+                    Details
                 </button>
 
-                {expanded && decision && (
-                    <div className="mt-2 p-3 bg-slate-700/50 rounded-lg text-sm space-y-1">
-                        <p className="text-slate-300">
-                            <span className="text-slate-500">Optimal:</span>{" "}
-                            {formatAction(
-                                decision.optimalAction,
-                                decision.optimalAmount,
-                            )}
-                        </p>
-                        <div className="text-slate-400">
-                            <p>
-                                Fold:{" "}
-                                {Math.round(
-                                    decision.optimalFrequencies.fold * 100,
-                                )}
-                                %
-                            </p>
-                            <p>
-                                Call:{" "}
-                                {Math.round(
-                                    decision.optimalFrequencies.call * 100,
-                                )}
-                                %
-                            </p>
-                            <p>
-                                Raise:{" "}
-                                {Math.round(
-                                    decision.optimalFrequencies.raise * 100,
-                                )}
-                                %
-                            </p>
-                        </div>
-                        {/* Equity, Pot Odds, SPR */}
-                        {(decision.equity != null || decision.potOdds != null || decision.spr != null) && (
-                            <div className="flex flex-wrap gap-2 mt-1">
+                {detailsOpen && (
+                    <div className="mt-2 pt-2 border-t border-slate-700/50 space-y-2">
+                        {/* Equity / Pot Odds / SPR */}
+                        {(decision.equity != null ||
+                            decision.potOdds != null ||
+                            decision.spr != null) && (
+                            <div className="flex flex-wrap gap-2">
                                 {decision.equity != null && (
                                     <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 text-xs">
-                                        Equity: {(decision.equity * 100).toFixed(1)}%
+                                        Equity:{" "}
+                                        {(decision.equity * 100).toFixed(1)}%
                                     </span>
                                 )}
                                 {decision.potOdds != null && (
                                     <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 text-xs">
-                                        Pot Odds: {(decision.potOdds * 100).toFixed(1)}%
+                                        Pot Odds:{" "}
+                                        {(decision.potOdds * 100).toFixed(1)}%
                                     </span>
                                 )}
                                 {decision.spr != null && (
@@ -335,49 +275,124 @@ function MobileStep({ round, decision, dotColor, isLast }: MobileStepProps) {
                                 )}
                             </div>
                         )}
-                        {/* Draw info */}
-                        {decision.draws != null && decision.draws.totalOuts > 0 && (
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                                {decision.draws.flushDraw && (
-                                    <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">
-                                        Flush draw
+
+                        {/* Draws */}
+                        {decision.draws != null &&
+                            decision.draws.totalOuts > 0 && (
+                                <div className="flex flex-wrap gap-1.5">
+                                    {decision.draws.flushDraw && (
+                                        <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">
+                                            Flush draw
+                                        </span>
+                                    )}
+                                    {decision.draws.oesD && (
+                                        <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-xs">
+                                            OESD
+                                        </span>
+                                    )}
+                                    {decision.draws.gutshot && (
+                                        <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">
+                                            Gutshot
+                                        </span>
+                                    )}
+                                    <span className="text-slate-500 text-xs">
+                                        {decision.draws.totalOuts} outs (
+                                        {(
+                                            decision.draws.drawEquity * 100
+                                        ).toFixed(1)}
+                                        %)
                                     </span>
-                                )}
-                                {decision.draws.oesD && (
-                                    <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-xs">
-                                        OESD
-                                    </span>
-                                )}
-                                {decision.draws.gutshot && (
-                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">
-                                        Gutshot
-                                    </span>
-                                )}
-                                <span className="text-slate-500 text-xs">
-                                    {decision.draws.totalOuts} outs ({(decision.draws.drawEquity * 100).toFixed(1)}%)
-                                </span>
-                            </div>
-                        )}
+                                </div>
+                            )}
+
                         {/* Board texture */}
                         {decision.boardTexture != null && (
-                            <p className="text-slate-500 text-xs mt-1">
+                            <p className="text-slate-500 text-xs">
                                 Board: {decision.boardTexture.wetness}
-                                {decision.boardTexture.isMonotone && ", monotone"}
+                                {decision.boardTexture.isMonotone &&
+                                    ", monotone"}
                                 {decision.boardTexture.isPaired && ", paired"}
-                                {decision.boardTexture.isRainbow && ", rainbow"}
+                                {decision.boardTexture.isRainbow &&
+                                    ", rainbow"}
                             </p>
                         )}
-                        <p
-                            className={`font-medium ${decision.evDiff <= 0 ? "text-emerald-400" : "text-red-400"}`}
-                        >
-                            EV:{" "}
-                            {decision.evDiff === 0
-                                ? "0.00"
-                                : `-${decision.evDiff.toFixed(2)}`}{" "}
-                            BB
-                        </p>
+
+                        {/* EV by action */}
+                        {decision.evByAction != null && (
+                            <div className="grid grid-cols-3 gap-1.5 text-xs text-center">
+                                <div className="px-2 py-1 rounded bg-red-500/10 text-red-400">
+                                    Fold:{" "}
+                                    {decision.evByAction.fold.toFixed(2)}
+                                </div>
+                                <div className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400">
+                                    Call:{" "}
+                                    {decision.evByAction.call.toFixed(2)}
+                                </div>
+                                <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-400">
+                                    Raise:{" "}
+                                    {decision.evByAction.raise.toFixed(2)}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Frequencies */}
+                        <div className="text-xs text-slate-500">
+                            Frequencies: Fold{" "}
+                            {Math.round(
+                                decision.optimalFrequencies.fold * 100,
+                            )}
+                            % / Call{" "}
+                            {Math.round(
+                                decision.optimalFrequencies.call * 100,
+                            )}
+                            % / Raise{" "}
+                            {Math.round(
+                                decision.optimalFrequencies.raise * 100,
+                            )}
+                            %
+                        </div>
                     </div>
                 )}
+            </div>
+        </div>
+    );
+}
+
+// ── Main Component ──────────────────────────────────────────────────
+
+export function HandTimeline({ decisions }: HandTimelineProps) {
+    const handHistory = useGameStore((s) => s.handHistory);
+    const latestHand = handHistory[handHistory.length - 1];
+    const communityCards = latestHand?.communityCards ?? [];
+
+    const decisionByRound = new Map(decisions.map((d) => [d.round, d]));
+
+    return (
+        <div className="bg-slate-800 rounded-xl p-4 md:p-6 shadow-lg">
+            <h3 className="text-lg font-semibold text-slate-100 mb-3">
+                Decision Review
+            </h3>
+
+            <div>
+                {ROUND_ORDER.map((round) => {
+                    const decision = decisionByRound.get(round);
+                    const boardCards = getCommunityCardsAtStreet(
+                        communityCards,
+                        round,
+                    );
+
+                    // Only show streets that either have a decision or have board cards
+                    if (!decision && boardCards.length === 0) return null;
+
+                    return (
+                        <StreetSection
+                            key={round}
+                            round={round}
+                            decision={decision}
+                            communityCards={boardCards}
+                        />
+                    );
+                })}
             </div>
         </div>
     );
