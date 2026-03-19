@@ -133,6 +133,7 @@ export interface Decision {
         sizingError: number;
     };
     hintUsed?: boolean;
+    heroIsAllIn?: boolean;
 }
 
 export interface Mistake {

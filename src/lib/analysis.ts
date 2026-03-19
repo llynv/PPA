@@ -361,6 +361,27 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
     const decisions: Decision[] = [];
     const mistakes: Mistake[] = [];
 
+    // Detect which round the hero went all-in (if at all).
+    // Hero's final state has isAllIn — find the last round they acted in.
+    let heroAllInRound: BettingRound | null = null;
+    if (hero.isAllIn) {
+        for (let i = BETTING_ROUNDS.length - 1; i >= 0; i--) {
+            const round = BETTING_ROUNDS[i];
+            const acted = actions.some(
+                (a) =>
+                    a.playerId === hero.id &&
+                    a.round === round &&
+                    (a.type === "bet" ||
+                        a.type === "raise" ||
+                        a.type === "call"),
+            );
+            if (acted) {
+                heroAllInRound = round;
+                break;
+            }
+        }
+    }
+
     // Analyze each round where hero acted
     for (const round of BETTING_ROUNDS) {
         const heroActions = actions.filter(
@@ -468,12 +489,15 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
             reasoning: result.reasoning,
             evByAction: result.evByAction,
             betSizeAnalysis,
+            heroIsAllIn: heroAllInRound === round,
         };
 
         decisions.push(decision);
 
-        // Generate mistake if hero deviated from optimal
-        if (evDiff > 0) {
+        // Generate mistake if hero deviated from optimal.
+        // Skip if hero's action is a viable mixed-strategy play (>= 20% frequency).
+        const heroFrequency = result.frequencies[heroCategory];
+        if (evDiff > 0 && heroFrequency < 0.2) {
             // Use engine reasoning for the description
             const description = result.reasoning;
 

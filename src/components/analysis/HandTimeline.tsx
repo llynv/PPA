@@ -22,7 +22,12 @@ const ROUND_LABELS: Record<BettingRound, string> = {
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
-function formatAction(action: string, amount?: number): string {
+function formatAction(action: string, amount?: number, isAllIn?: boolean): string {
+    if (isAllIn && (action === "bet" || action === "raise" || action === "call")) {
+        return amount != null && amount > 0
+            ? `All-in $${amount.toLocaleString()}`
+            : "All-in";
+    }
     const label = action.charAt(0).toUpperCase() + action.slice(1);
     if (amount != null && amount > 0) {
         return `${label} $${amount.toLocaleString()}`;
@@ -205,6 +210,7 @@ function StreetSection({
                                 {formatAction(
                                     decision.heroAction,
                                     decision.heroAmount,
+                                    decision.heroIsAllIn,
                                 )}
                             </span>
                         </div>

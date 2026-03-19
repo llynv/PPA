@@ -20,7 +20,12 @@ const SEVERITY_BG: Record<Mistake["severity"], string> = {
     major: "bg-red-500/20 text-red-400",
 };
 
-function formatAction(action: string, amount?: number): string {
+function formatAction(action: string, amount?: number, isAllIn?: boolean): string {
+    if (isAllIn && (action === "bet" || action === "raise" || action === "call")) {
+        return amount != null && amount > 0
+            ? `All-in $${amount.toLocaleString()}`
+            : "All-in";
+    }
     const label = action.charAt(0).toUpperCase() + action.slice(1);
     if (amount != null && amount > 0) {
         return `${label} $${amount.toLocaleString()}`;
@@ -45,9 +50,11 @@ function generateNarrative(mistake: Mistake, decision?: Decision): string {
             ? `${Math.round(decision.potOdds * 100)}% pot odds`
             : null;
 
+    const heroVerb =
+        decision?.heroIsAllIn ? "go all-in" : mistake.heroAction;
     const parts: string[] = [];
     parts.push(
-        `On the ${mistake.round}, you chose to ${mistake.heroAction} when ${mistake.optimalAction} was the better play.`,
+        `On the ${mistake.round}, you chose to ${heroVerb} when ${mistake.optimalAction} was the better play.`,
     );
 
     if (equityStr && potOddsStr) {
@@ -151,6 +158,7 @@ export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
                                 {formatAction(
                                     mistake.heroAction,
                                     decision?.heroAmount,
+                                    decision?.heroIsAllIn,
                                 )}
                             </p>
                         </div>
