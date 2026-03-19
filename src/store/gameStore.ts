@@ -348,12 +348,15 @@ export const useGameStore = create<StoreState>((set, get) => ({
             case "raise": {
                 const betAmount = amount ?? 0;
                 const totalCommitment = betAmount;
-                const additionalAmount = Math.min(
-                    totalCommitment - updatedPlayer.currentBet,
-                    updatedPlayer.stack,
+                const additionalAmount = Math.max(
+                    0,
+                    Math.min(
+                        totalCommitment - updatedPlayer.currentBet,
+                        updatedPlayer.stack,
+                    ),
                 );
                 updatedPlayer.stack -= additionalAmount;
-                updatedPlayer.currentBet = totalCommitment;
+                updatedPlayer.currentBet += additionalAmount;
                 potDelta = additionalAmount;
                 if (updatedPlayer.stack === 0) updatedPlayer.isAllIn = true;
                 break;
@@ -443,13 +446,19 @@ export const useGameStore = create<StoreState>((set, get) => ({
         let activeIdx = currentState.activePlayerIndex;
         let activePlayer = currentState.players[activeIdx];
 
+        // Safety: limit iterations to prevent infinite loops
+        const MAX_AI_ACTIONS = 50;
+        let actionCount = 0;
+
         // Keep processing while the active player is AI (not hero)
         while (
             activePlayer &&
             !activePlayer.isHero &&
             !activePlayer.isFolded &&
-            !activePlayer.isAllIn
+            !activePlayer.isAllIn &&
+            actionCount < MAX_AI_ACTIONS
         ) {
+            actionCount++;
             const {
                 players,
                 communityCards,
@@ -490,6 +499,33 @@ export const useGameStore = create<StoreState>((set, get) => ({
                 bigBlind: settings.bigBlind,
             });
 
+            // Enforce raise cap (max 4 raises per round) to prevent
+            // endless re-raise wars between aggressive AI players
+            const roundRaises = actions.filter(
+                (a) =>
+                    a.round === currentRound &&
+                    (a.type === "raise" || a.type === "bet"),
+            ).length;
+            if (
+                roundRaises >= 4 &&
+                (decision.action === "raise" || decision.action === "bet")
+            ) {
+                const toCall = Math.max(
+                    0,
+                    currentBet - activePlayer.currentBet,
+                );
+                if (toCall > 0 && toCall <= activePlayer.stack) {
+                    decision.action = "call";
+                    decision.amount = toCall;
+                } else if (toCall === 0) {
+                    decision.action = "check";
+                    decision.amount = undefined;
+                } else {
+                    decision.action = "fold";
+                    decision.amount = undefined;
+                }
+            }
+
             // Show toast for this AI action
             const toastAction =
                 decision.action === "fold"
@@ -512,7 +548,17 @@ export const useGameStore = create<StoreState>((set, get) => ({
             // Wait 600ms before executing the action (visual pacing)
             await delay(600);
 
-            get().performAction(decision.action, decision.amount);
+            // AI engine returns raise/bet amounts as additional chips (potDelta).
+            // performAction expects total commitment, so convert by adding currentBet.
+            let actionAmount = decision.amount;
+            if (
+                actionAmount !== undefined &&
+                (decision.action === "bet" || decision.action === "raise")
+            ) {
+                actionAmount = activePlayer.currentBet + actionAmount;
+            }
+
+            get().performAction(decision.action, actionAmount);
 
             // Refresh state after action
             currentState = get();
