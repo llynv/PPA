@@ -77,7 +77,7 @@ export function ActionControls() {
   const raiseLabel = currentMaxBet > 0 ? 'Raise' : 'Bet';
 
   return (
-    <div className="w-full bg-slate-900 border-t border-slate-700 p-4 pb-[env(safe-area-inset-bottom,16px)]">
+    <div className="w-full bg-slate-900 border-t border-slate-700 p-3 pb-[env(safe-area-inset-bottom,12px)] flex-shrink-0">
       {/* Raise slider panel */}
       {showRaiseSlider && (
         <div className="mb-4 space-y-3">

@@ -9,9 +9,11 @@ export function AppShell({ children }: AppShellProps) {
   const handNumber = useGameStore((s) => s.handNumber);
   const resetGame = useGameStore((s) => s.resetGame);
 
+  const isGameView = gamePhase === 'playing' || gamePhase === 'showdown';
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-100">
-      <nav className="bg-slate-800 border-b border-slate-700 px-4 py-3 min-h-[48px] flex flex-row items-center justify-between">
+    <div className={`flex flex-col bg-slate-900 text-slate-100 ${isGameView ? 'h-dvh overflow-hidden' : 'min-h-dvh'}`}>
+      <nav className="bg-slate-800 border-b border-slate-700 px-4 py-2 flex flex-row items-center justify-between flex-shrink-0">
         <span className="text-emerald-400 font-bold text-lg">PPA</span>
 
         {gamePhase !== 'settings' && (
@@ -27,7 +29,7 @@ export function AppShell({ children }: AppShellProps) {
         )}
       </nav>
 
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className={`flex-1 ${isGameView ? 'min-h-0' : 'overflow-auto'}`}>{children}</main>
     </div>
   );
 }
