@@ -1,8 +1,10 @@
 import { useSyncExternalStore } from "react";
+import { useMemo } from "react";
 import type { Card, Player, BettingRound } from "../../types/poker";
 import { suitSymbol, suitColor } from "../../lib/deck";
 import { useGameStore } from "../../store/gameStore";
 import { getPosition } from "../../lib/poker-engine";
+import { getBestHand } from "../../lib/evaluator";
 
 // ── Orientation Hook ────────────────────────────────────────────────
 
@@ -35,7 +37,7 @@ function CardDisplay({
 }) {
     if (faceDown) {
         return (
-            <div className="w-7 h-10 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
+            <div aria-label="Face-down card" className="w-7 h-10 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
                 <span className="text-slate-400 text-xs">🂠</span>
             </div>
         );
@@ -46,6 +48,7 @@ function CardDisplay({
 
     return (
         <div
+            aria-label={`${card.rank} of ${card.suit}`}
             className={`w-7 h-10 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
         >
             <span className="text-[10px] md:text-sm font-bold">{card.rank}</span>
@@ -117,9 +120,24 @@ export function PlayerSeat({
     const currentRound = useGameStore((s) => s.currentRound);
     const gamePhase = useGameStore((s) => s.gamePhase);
     const winner = useGameStore((s) => s.winner);
+    const communityCards = useGameStore((s) => s.communityCards);
     const isLandscape = useIsLandscape();
 
     const showCards = player.isHero || gamePhase === "showdown";
+
+    // Compute hand rank description at showdown for non-folded players
+    const handDescription = useMemo(() => {
+        if (
+            gamePhase !== "showdown" ||
+            player.isFolded ||
+            player.holeCards.length < 2 ||
+            communityCards.length < 5
+        ) {
+            return null;
+        }
+        const evaluation = getBestHand(player.holeCards, communityCards);
+        return evaluation.description;
+    }, [gamePhase, player.isFolded, player.holeCards, communityCards]);
     const isFolded = player.isFolded;
     const isAllIn = player.isAllIn;
     const isWinner = gamePhase === "showdown" && player.id === winner;
@@ -198,6 +216,13 @@ export function PlayerSeat({
                     isFolded={isFolded}
                     currentRound={currentRound}
                 />
+
+                {/* Hand rank at showdown */}
+                {handDescription && (
+                    <span className="text-[10px] md:text-xs text-slate-300 bg-slate-700 px-1.5 py-0.5 rounded mt-0.5">
+                        {handDescription}
+                    </span>
+                )}
 
                 {/* Status badges */}
                 {isFolded && (

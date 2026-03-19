@@ -239,7 +239,7 @@ function StreetSection({
                 {/* Expandable details */}
                 <button
                     onClick={() => setDetailsOpen(!detailsOpen)}
-                    className="flex items-center gap-1 mt-2 text-slate-500 hover:text-slate-300 text-xs transition-colors"
+                    className="flex items-center gap-1 mt-2 text-slate-500 hover:text-slate-300 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     {detailsOpen ? (
                         <ChevronDown className="w-3 h-3" />

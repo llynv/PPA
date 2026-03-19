@@ -399,7 +399,6 @@ export const useGameStore = create<StoreState>((set, get) => ({
                 winnerHand: undefined,
                 handHistory: [...state.handHistory, handHistoryEntry],
             });
-            get().viewAnalysis();
             return;
         }
 

@@ -84,7 +84,7 @@ export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
             {/* Clickable header */}
             <button
                 onClick={() => setExpanded(!expanded)}
-                className="w-full text-left p-4 focus:outline-none"
+                className="w-full text-left p-4 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
                 aria-expanded={expanded}
             >
                 {/* Top row: index, severity badge, round, EV cost */}

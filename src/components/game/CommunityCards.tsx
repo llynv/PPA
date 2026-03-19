@@ -19,6 +19,7 @@ function CommunityCardDisplay({ card }: { card: Card }) {
 
     return (
         <div
+            aria-label={`${card.rank} of ${card.suit}`}
             className={`w-10 h-14 md:w-14 md:h-20 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
         >
             <span className="text-sm md:text-base font-bold">{card.rank}</span>
@@ -29,7 +30,7 @@ function CommunityCardDisplay({ card }: { card: Card }) {
 
 function EmptyCardSlot() {
     return (
-        <div className="w-10 h-14 md:w-14 md:h-20 rounded-lg border-2 border-dashed border-slate-600 flex items-center justify-center">
+        <div aria-label="Empty card slot" className="w-10 h-14 md:w-14 md:h-20 rounded-lg border-2 border-dashed border-slate-600 flex items-center justify-center">
             <span className="text-slate-600 text-xs">?</span>
         </div>
     );

@@ -140,7 +140,7 @@ export function HintPanel() {
                 <div className="flex justify-center pb-1">
                     <button
                         onClick={handleShowHint}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors"
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-1.5 rounded-lg text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         Show Hint
                     </button>
@@ -156,7 +156,7 @@ export function HintPanel() {
                         </h3>
                         <button
                             onClick={handleClose}
-                            className="text-slate-400 hover:text-white transition-colors"
+                            className="text-slate-400 hover:text-white transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                             aria-label="Close hint panel"
                         >
                             <X className="w-4 h-4" />

@@ -30,7 +30,7 @@ function CollapsibleSection({
         <div className="border border-slate-700 rounded-xl overflow-hidden">
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-left"
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-left focus-visible:ring-2 focus-visible:ring-emerald-400"
             >
                 <span className="text-sm font-semibold text-slate-300">
                     {title}
@@ -139,13 +139,13 @@ export function AnalysisDashboard() {
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
                     onClick={handleNextHand}
-                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-lg transition-colors"
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-lg transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     Next Hand
                 </button>
                 <button
                     onClick={resetGame}
-                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-3 rounded-lg font-bold text-lg transition-colors"
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-3 rounded-lg font-bold text-lg transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     Back to Settings
                 </button>

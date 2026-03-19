@@ -54,7 +54,7 @@ export function GameSettings() {
                                 onClick={() =>
                                     updateSettings({ playerCount: n + 1 })
                                 }
-                                className={`${buttonBase} ${selectedOpponents === n ? activeClass : inactiveClass}`}
+                                className={`${buttonBase} ${selectedOpponents === n ? activeClass : inactiveClass} focus-visible:ring-2 focus-visible:ring-emerald-400`}
                             >
                                 {n}
                             </button>
@@ -103,7 +103,7 @@ export function GameSettings() {
                                     settings.bigBlind === preset.bigBlind
                                     ? activeClass
                                     : inactiveClass
-                                    }`}
+                                    } focus-visible:ring-2 focus-visible:ring-emerald-400`}
                             >
                                 {preset.label}
                             </button>
@@ -126,7 +126,7 @@ export function GameSettings() {
                                 className={`${buttonBase} ${settings.startingStack === stack
                                     ? activeClass
                                     : inactiveClass
-                                    }`}
+                                    } focus-visible:ring-2 focus-visible:ring-emerald-400`}
                             >
                                 {stack.toLocaleString()}
                             </button>
@@ -152,7 +152,7 @@ export function GameSettings() {
                             role="switch"
                             aria-checked={trainingMode}
                             onClick={() => setTrainingMode(!trainingMode)}
-                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400 ${
                                 trainingMode ? "bg-emerald-600" : "bg-slate-600"
                             }`}
                         >
@@ -168,7 +168,7 @@ export function GameSettings() {
                 {/* Start Button */}
                 <button
                     onClick={handleStart}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-lg font-bold text-lg transition-colors flex items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     <PlayCircle className="w-5 h-5" />
                     Deal Cards

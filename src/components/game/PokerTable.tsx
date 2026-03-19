@@ -38,13 +38,13 @@ function ShowdownOverlay() {
                 <div className="flex gap-3">
                     <button
                         onClick={viewAnalysis}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         View Analysis
                     </button>
                     <button
                         onClick={handleNextHand}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors"
+                        className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         Next Hand
                     </button>

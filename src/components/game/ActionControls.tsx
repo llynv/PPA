@@ -117,7 +117,8 @@ export function ActionControls() {
                         step={settings.bigBlind}
                         value={raiseAmount}
                         onChange={(e) => setRaiseAmount(Number(e.target.value))}
-                        className="w-full accent-amber-500"
+                        aria-label="Raise amount slider"
+                        className="w-full accent-amber-500 focus-visible:ring-2 focus-visible:ring-emerald-400"
                     />
 
                     {/* Preset buttons */}
@@ -147,7 +148,8 @@ export function ActionControls() {
                     {/* Confirm raise */}
                     <button
                         onClick={handleRaise}
-                        className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px]"
+                        aria-label={`Confirm ${raiseLabel} $${raiseAmount}`}
+                        className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         Confirm {raiseLabel} ${raiseAmount.toLocaleString()}
                     </button>
@@ -158,14 +160,16 @@ export function ActionControls() {
             <div className="grid grid-cols-3 gap-3 md:flex md:justify-center md:gap-4">
                 <button
                     onClick={handleFold}
-                    className="bg-red-600 hover:bg-red-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px]"
+                    aria-label="Fold your hand"
+                    className="bg-red-600 hover:bg-red-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     Fold
                 </button>
 
                 <button
                     onClick={handleCheckCall}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px]"
+                    aria-label={canCheck ? "Check" : `Call $${currentBetToCall}`}
+                    className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     {canCheck ? (
                         "Check"
@@ -183,7 +187,8 @@ export function ActionControls() {
 
                 <button
                     onClick={openRaiseSlider}
-                    className="bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px]"
+                    aria-label={`${raiseLabel} - open raise slider`}
+                    className="bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
                     {raiseLabel}
                 </button>
@@ -204,7 +209,8 @@ function PresetButton({
     return (
         <button
             onClick={onClick}
-            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors"
+            aria-label={`Set raise to ${label}`}
+            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
         >
             {label}
         </button>
