@@ -59,10 +59,7 @@ type SeatPosition =
     | "left"
     | "right"
     | "top-left"
-    | "top-right"
-    | "bottom-left"
-    | "bottom-right"
-    | "left-top";
+    | "top-right";
 
 /**
  * Returns seat positions arranged around the table.
@@ -81,39 +78,6 @@ function getSeatPositions(playerCount: number): SeatPosition[] {
             return ["bottom", "left", "top-left", "top-right", "right"];
         case 6:
             return ["bottom", "left", "top-left", "top", "top-right", "right"];
-        case 7:
-            return [
-                "bottom",
-                "bottom-left",
-                "left",
-                "top-left",
-                "top-right",
-                "right",
-                "bottom-right",
-            ];
-        case 8:
-            return [
-                "bottom",
-                "bottom-left",
-                "left",
-                "top-left",
-                "top",
-                "top-right",
-                "right",
-                "bottom-right",
-            ];
-        case 9:
-            return [
-                "bottom",
-                "bottom-left",
-                "left",
-                "left-top",
-                "top-left",
-                "top",
-                "top-right",
-                "right",
-                "bottom-right",
-            ];
         default:
             return ["bottom", "top"];
     }

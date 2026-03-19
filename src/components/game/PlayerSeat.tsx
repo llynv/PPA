@@ -61,10 +61,7 @@ type SeatPosition =
     | "left"
     | "right"
     | "top-left"
-    | "top-right"
-    | "bottom-left"
-    | "bottom-right"
-    | "left-top";
+    | "top-right";
 
 /** Portrait: percentage-based coordinates (scales with container) */
 const POSITION_COORDS: Record<SeatPosition, { top: string; left: string }> = {
@@ -74,9 +71,6 @@ const POSITION_COORDS: Record<SeatPosition, { top: string; left: string }> = {
     right:          { top: "50%", left: "97%" },
     "top-left":     { top: "15%", left: "15%" },
     "top-right":    { top: "15%", left: "85%" },
-    "bottom-left":  { top: "82%", left: "15%" },
-    "bottom-right": { top: "82%", left: "85%" },
-    "left-top":     { top: "33%", left: "5%" },
 };
 
 /** Landscape: original fixed Tailwind classes (scrollable layout) */
@@ -87,9 +81,6 @@ const POSITION_CLASSES: Record<SeatPosition, string> = {
     right: "absolute right-2 top-1/2 -translate-y-1/2",
     "top-left": "absolute top-6 left-8",
     "top-right": "absolute top-6 right-8",
-    "bottom-left": "absolute bottom-6 left-8",
-    "bottom-right": "absolute bottom-6 right-8",
-    "left-top": "absolute top-1/3 left-4",
 };
 
 // ── Personality Labels ──────────────────────────────────────────────
@@ -126,12 +117,15 @@ export function PlayerSeat({
     const isAllIn = player.isAllIn;
     const isWinner = gamePhase === "showdown" && player.id === winner;
 
+    // Z-index hierarchy: active z-[15], hero z-[12], others z-10
+    const zClass = isActive ? "z-[15]" : player.isHero ? "z-[12]" : "z-10";
+
     // Landscape: use original fixed Tailwind classes (scrollable layout)
     // Portrait: use percentage-based coordinates (fits viewport)
     const positionProps = isLandscape
-        ? { className: `${POSITION_CLASSES[position]} z-10` }
+        ? { className: `${POSITION_CLASSES[position]} ${zClass}` }
         : {
-              className: "absolute z-10",
+              className: `absolute ${zClass}`,
               style: {
                   top: POSITION_COORDS[position].top,
                   left: POSITION_COORDS[position].left,
@@ -198,7 +192,7 @@ export function PlayerSeat({
 
                 {/* Current bet */}
                 {player.currentBet > 0 && (
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-amber-600 text-white text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-[5] bg-amber-600 text-white text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                         ${player.currentBet}
                     </div>
                 )}

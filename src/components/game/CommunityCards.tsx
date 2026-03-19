@@ -47,7 +47,7 @@ export function CommunityCards({ cards, round }: CommunityCardsProps) {
     const emptySlots = totalSlots - cards.length;
 
     return (
-        <div className="flex flex-col items-center gap-2">
+        <div className="relative z-20 flex flex-col items-center gap-2">
             <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">
                 {ROUND_LABELS[round]}
             </span>
