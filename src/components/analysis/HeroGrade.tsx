@@ -1,4 +1,5 @@
 import type { HeroGrade as HeroGradeType, Decision } from "../../types/poker";
+import { useGameStore } from "../../store/gameStore";
 
 interface HeroGradeProps {
     grade: HeroGradeType;
@@ -37,12 +38,19 @@ export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
     const circumference = 2 * Math.PI * radius;
     const gradePercent = getGradePercent(grade);
     const offset = circumference * (1 - gradePercent / 100);
+    const sessionAnalyses = useGameStore((s) => s.sessionAnalyses);
 
     // Count mistakes (decisions where heroAction !== optimalAction)
     const mistakeCount = decisions
         ? decisions.filter((d) => d.heroAction !== d.optimalAction).length
         : undefined;
     const decisionCount = decisions?.length;
+
+    // Generate summary sentence
+    const summary = generateSummary(grade, mistakeCount, decisionCount, evLoss);
+
+    // Session streak: count consecutive hands with the same or better grade
+    const streak = getStreak(sessionAnalyses);
 
     return (
         <div className="bg-slate-800 rounded-xl p-6 shadow-lg flex flex-col items-center">
@@ -104,6 +112,65 @@ export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
                     )}
                 </p>
             )}
+
+            {/* Summary sentence */}
+            {summary && (
+                <p className="text-slate-400 text-xs mt-2 text-center max-w-[250px]">
+                    {summary}
+                </p>
+            )}
+
+            {/* Session streak */}
+            {streak != null && streak >= 2 && (
+                <p className="text-blue-400 text-xs mt-1 font-medium">
+                    {streak}-hand streak of {grade.startsWith("A") ? "A" : grade}+ grades
+                </p>
+            )}
         </div>
     );
+}
+
+// ── Helpers ─────────────────────────────────────────────────────────
+
+function generateSummary(
+    grade: HeroGradeType,
+    mistakeCount: number | undefined,
+    decisionCount: number | undefined,
+    evLoss: number,
+): string {
+    if (decisionCount == null) return "";
+
+    if (grade.startsWith("A") && (mistakeCount ?? 0) === 0) {
+        return "Excellent play — no mistakes detected.";
+    }
+    if (grade.startsWith("A")) {
+        return `Strong play — ${mistakeCount === 1 ? "one minor error" : `${mistakeCount} small errors`} overall.`;
+    }
+    if (grade.startsWith("B")) {
+        return `Good play with room to improve. ${evLoss.toFixed(1)} BB left on the table.`;
+    }
+    if (grade.startsWith("C")) {
+        return `Mixed results — some key decisions cost you ${evLoss.toFixed(1)} BB.`;
+    }
+    return `Several costly mistakes. Review the decisions below to improve.`;
+}
+
+function getStreak(
+    sessionAnalyses: { heroGrade: HeroGradeType }[],
+): number | null {
+    if (sessionAnalyses.length < 2) return null;
+
+    const latest = sessionAnalyses[sessionAnalyses.length - 1];
+    const latestLetter = latest.heroGrade.charAt(0);
+    let count = 0;
+
+    for (let i = sessionAnalyses.length - 1; i >= 0; i--) {
+        if (sessionAnalyses[i].heroGrade.charAt(0) <= latestLetter) {
+            count++;
+        } else {
+            break;
+        }
+    }
+
+    return count;
 }

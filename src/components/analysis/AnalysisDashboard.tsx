@@ -1,6 +1,9 @@
+import { useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 import { useGameStore } from "../../store/gameStore";
 import { HeroGrade } from "./HeroGrade";
 import { HandTimeline } from "./HandTimeline";
+import { HandReplay } from "./HandReplay";
 import { DecisionChart } from "./DecisionChart";
 import { MistakeCard } from "./MistakeCard";
 import { EVTracker } from "./EVTracker";
@@ -11,6 +14,37 @@ const SEVERITY_ORDER: Record<Mistake["severity"], number> = {
     moderate: 1,
     minor: 2,
 };
+
+function CollapsibleSection({
+    title,
+    children,
+    defaultOpen = false,
+}: {
+    title: string;
+    children: React.ReactNode;
+    defaultOpen?: boolean;
+}) {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+
+    return (
+        <div className="border border-slate-700 rounded-xl overflow-hidden">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-800/50 hover:bg-slate-700/50 transition-colors text-left"
+            >
+                <span className="text-sm font-semibold text-slate-300">
+                    {title}
+                </span>
+                {isOpen ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                )}
+            </button>
+            {isOpen && <div className="p-1">{children}</div>}
+        </div>
+    );
+}
 
 export function AnalysisDashboard() {
     const analysisData = useGameStore((s) => s.analysisData);
@@ -40,17 +74,19 @@ export function AnalysisDashboard() {
 
     const handleNextHand = () => {
         startHand();
-        processAITurns();
+        void processAITurns();
     };
 
     return (
         <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
-            {/* Title */}
-            <h2 className="text-2xl font-bold text-slate-100 text-center">
-                Hand Analysis — Hand #{analysisData.handNumber}
+            {/* 1. Hand Replay (replaces abstract title) */}
+            <HandReplay />
+
+            <h2 className="text-lg font-bold text-slate-100 text-center">
+                Hand #{analysisData.handNumber}
             </h2>
 
-            {/* 1. Hero Grade */}
+            {/* 2. Hero Grade */}
             <div className="flex justify-center">
                 <HeroGrade
                     grade={analysisData.heroGrade}
@@ -59,11 +95,8 @@ export function AnalysisDashboard() {
                 />
             </div>
 
-            {/* 2. Hand Timeline */}
+            {/* 3. Hand Timeline */}
             <HandTimeline decisions={analysisData.decisions} />
-
-            {/* 3. Decision Chart */}
-            <DecisionChart decisions={analysisData.decisions} />
 
             {/* 4. Mistakes */}
             <div>
@@ -90,9 +123,16 @@ export function AnalysisDashboard() {
                 )}
             </div>
 
-            {/* 5. EV Tracker */}
+            {/* 5. Advanced Stats (collapsible) */}
+            <CollapsibleSection title="Advanced Stats — Optimal Frequencies">
+                <DecisionChart decisions={analysisData.decisions} />
+            </CollapsibleSection>
+
+            {/* 6. Session Stats (collapsible) */}
             {sessionAnalyses.length > 0 && (
-                <EVTracker analyses={sessionAnalyses} />
+                <CollapsibleSection title="Session Stats — EV Tracker">
+                    <EVTracker analyses={sessionAnalyses} />
+                </CollapsibleSection>
             )}
 
             {/* Action buttons */}
