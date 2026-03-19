@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+*.swp
+*.swo
+
+# OS
+.DS_Store
+
+# Env
+*.local
+.env
+.env.*
+
+# TypeScript build info
+*.tsbuildinfo
