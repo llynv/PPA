@@ -37,7 +37,7 @@ function CardDisplay({
 }) {
     if (faceDown) {
         return (
-            <div aria-label="Face-down card" className="w-7 h-10 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
+            <div aria-label="Face-down card" className="w-6 h-9 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
                 <span className="text-slate-400 text-xs">🂠</span>
             </div>
         );
@@ -49,7 +49,7 @@ function CardDisplay({
     return (
         <div
             aria-label={`${card.rank} of ${card.suit}`}
-            className={`w-7 h-10 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
+            className={`w-6 h-9 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
         >
             <span className="text-[10px] md:text-sm font-bold">{card.rank}</span>
             <span className="text-xs md:text-lg">{suitSymbol(card.suit)}</span>
@@ -69,22 +69,22 @@ type SeatPosition =
 
 /** Portrait: percentage-based coordinates (scales with container) */
 const POSITION_COORDS: Record<SeatPosition, { top: string; left: string }> = {
-    top:            { top: "2%",  left: "50%" },
-    bottom:         { top: "95%", left: "50%" },
-    left:           { top: "50%", left: "3%" },
-    right:          { top: "50%", left: "97%" },
-    "top-left":     { top: "15%", left: "15%" },
-    "top-right":    { top: "15%", left: "85%" },
+    top:            { top: "3%",  left: "50%" },
+    bottom:         { top: "85%", left: "50%" },
+    left:           { top: "50%", left: "4%" },
+    right:          { top: "50%", left: "96%" },
+    "top-left":     { top: "10%", left: "12%" },
+    "top-right":    { top: "10%", left: "88%" },
 };
 
 /** Landscape: original fixed Tailwind classes (scrollable layout) */
 const POSITION_CLASSES: Record<SeatPosition, string> = {
-    top: "absolute top-2 left-1/2 -translate-x-1/2",
-    bottom: "absolute bottom-2 left-1/2 -translate-x-1/2",
-    left: "absolute left-2 top-1/2 -translate-y-1/2",
-    right: "absolute right-2 top-1/2 -translate-y-1/2",
-    "top-left": "absolute top-6 left-8",
-    "top-right": "absolute top-6 right-8",
+    top: "absolute top-3 left-1/2 -translate-x-1/2",
+    bottom: "absolute bottom-3 left-1/2 -translate-x-1/2",
+    left: "absolute left-4 top-1/2 -translate-y-1/2",
+    right: "absolute right-4 top-1/2 -translate-y-1/2",
+    "top-left": "absolute top-8 left-12",
+    "top-right": "absolute top-8 right-12",
 };
 
 // ── Personality Labels ──────────────────────────────────────────────
@@ -171,10 +171,10 @@ export function PlayerSeat({
             <div
                 aria-label={`${player.name}, ${pokerPosition} position, stack ${player.stack}`}
                 className={`
-          relative flex flex-col items-center gap-0.5 md:gap-1 p-1 md:p-2.5 rounded-xl bg-slate-800 border
+          relative flex flex-col items-center gap-0.5 md:gap-1 p-0.5 md:p-2.5 rounded-xl bg-slate-800 border
           ${isWinner ? "ring-2 ring-emerald-400 border-emerald-500 shadow-lg shadow-emerald-500/30" : activeRingClass || "border-slate-600"}
           ${isFolded ? "opacity-40" : ""}
-          min-w-[80px] md:min-w-[120px]
+          min-w-[64px] md:min-w-[120px]
         `}
             >
                 {/* Dealer button */}

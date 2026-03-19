@@ -117,7 +117,7 @@ export function PokerTable() {
     return (
         <div className="flex flex-col h-full">
             {/* Table area */}
-            <div className="flex-1 flex items-center justify-center p-2 md:p-4 min-h-0">
+            <div className="flex-1 flex items-center justify-center p-2 pb-6 md:p-4 md:pb-6 min-h-0 overflow-visible">
                 <div className={tableClasses}>
                     {/* Player seats */}
                     {players.map((player, i) => (
