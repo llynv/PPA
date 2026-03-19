@@ -3,6 +3,7 @@ import { PlayerSeat, useIsLandscape } from "./PlayerSeat";
 import { CommunityCards } from "./CommunityCards";
 import { PotDisplay } from "./PotDisplay";
 import { ActionControls } from "./ActionControls";
+import { ActionToast } from "./ActionToast";
 
 // ── Showdown Overlay ────────────────────────────────────────────────
 
@@ -18,7 +19,7 @@ function ShowdownOverlay() {
 
     const handleNextHand = () => {
         startHand();
-        processAITurns();
+        void processAITurns();
     };
 
     return (
@@ -138,6 +139,9 @@ export function PokerTable() {
 
                     {/* Pot */}
                     <PotDisplay pot={pot} />
+
+                    {/* AI action toast */}
+                    <ActionToast />
                 </div>
             </div>
 

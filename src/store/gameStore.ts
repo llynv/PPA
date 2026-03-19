@@ -131,12 +131,13 @@ interface StoreState {
     // Training mode
     trainingMode: boolean;
     isProcessingAI: boolean;
+    aiActionToast: { playerName: string; action: string; amount?: number } | null;
 
     // Actions
     updateSettings: (settings: Partial<GameSettings>) => void;
     startHand: () => void;
     performAction: (action: ActionType, amount?: number) => void;
-    processAITurns: () => void;
+    processAITurns: () => Promise<void>;
     advanceRound: () => void;
     resolveShowdown: () => void;
     viewAnalysis: () => void;
@@ -166,6 +167,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
     sessionAnalyses: [],
     trainingMode: false,
     isProcessingAI: false,
+    aiActionToast: null,
 
     // ── updateSettings ──
     updateSettings: (newSettings) => {
@@ -428,9 +430,15 @@ export const useGameStore = create<StoreState>((set, get) => ({
     },
 
     // ── processAITurns ──
-    processAITurns: () => {
+    processAITurns: async () => {
         const state = get();
         if (state.gamePhase !== "playing") return;
+        if (state.isProcessingAI) return; // prevent re-entry
+
+        set({ isProcessingAI: true });
+
+        const delay = (ms: number) =>
+            new Promise<void>((resolve) => setTimeout(resolve, ms));
 
         let currentState = get();
         let activeIdx = currentState.activePlayerIndex;
@@ -483,6 +491,28 @@ export const useGameStore = create<StoreState>((set, get) => ({
                 bigBlind: settings.bigBlind,
             });
 
+            // Show toast for this AI action
+            const toastAction =
+                decision.action === "fold"
+                    ? "folds"
+                    : decision.action === "check"
+                      ? "checks"
+                      : decision.action === "call"
+                        ? "calls"
+                        : decision.action === "raise"
+                          ? "raises to"
+                          : "bets";
+            set({
+                aiActionToast: {
+                    playerName: activePlayer.name,
+                    action: toastAction,
+                    amount: decision.amount,
+                },
+            });
+
+            // Wait 600ms before executing the action (visual pacing)
+            await delay(600);
+
             get().performAction(decision.action, decision.amount);
 
             // Refresh state after action
@@ -492,6 +522,8 @@ export const useGameStore = create<StoreState>((set, get) => ({
             activeIdx = currentState.activePlayerIndex;
             activePlayer = currentState.players[activeIdx];
         }
+
+        set({ isProcessingAI: false, aiActionToast: null });
     },
 
     // ── advanceRound ──
@@ -708,6 +740,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
             analysisData: null,
             sessionAnalyses: [],
             isProcessingAI: false,
+            aiActionToast: null,
         });
     },
 

@@ -8,6 +8,7 @@ export function ActionControls() {
     const settings = useGameStore((s) => s.settings);
     const performAction = useGameStore((s) => s.performAction);
     const processAITurns = useGameStore((s) => s.processAITurns);
+    const isProcessingAI = useGameStore((s) => s.isProcessingAI);
 
     const heroPlayer = players.find((p) => p.isHero);
     const activePlayer = players[activePlayerIndex];
@@ -45,7 +46,7 @@ export function ActionControls() {
     const handleFold = useCallback(() => {
         performAction("fold");
         setShowRaiseSlider(false);
-        processAITurns();
+        void processAITurns();
     }, [performAction, processAITurns]);
 
     const handleCheckCall = useCallback(() => {
@@ -55,14 +56,14 @@ export function ActionControls() {
             performAction("call");
         }
         setShowRaiseSlider(false);
-        processAITurns();
+        void processAITurns();
     }, [canCheck, performAction, processAITurns]);
 
     const handleRaise = useCallback(() => {
         const actionType = currentMaxBet > 0 ? "raise" : "bet";
         performAction(actionType, raiseAmount);
         setShowRaiseSlider(false);
-        processAITurns();
+        void processAITurns();
     }, [currentMaxBet, raiseAmount, performAction, processAITurns]);
 
     const setPresetRaise = useCallback(
@@ -77,8 +78,8 @@ export function ActionControls() {
         [pot, minRaiseTotal, maxRaiseTotal],
     );
 
-    // Don't render if it's not hero's turn
-    if (!isHeroTurn || !heroPlayer) return null;
+    // Don't render if it's not hero's turn or AI is processing
+    if (!isHeroTurn || !heroPlayer || isProcessingAI) return null;
 
     const raiseLabel = currentMaxBet > 0 ? "Raise" : "Bet";
 

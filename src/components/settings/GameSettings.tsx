@@ -28,7 +28,7 @@ export function GameSettings() {
 
     const handleStart = () => {
         startHand();
-        processAITurns();
+        void processAITurns();
     };
 
     return (
