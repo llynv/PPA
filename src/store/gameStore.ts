@@ -128,6 +128,10 @@ interface StoreState {
     analysisData: AnalysisData | null;
     sessionAnalyses: AnalysisData[];
 
+    // Training mode
+    trainingMode: boolean;
+    isProcessingAI: boolean;
+
     // Actions
     updateSettings: (settings: Partial<GameSettings>) => void;
     startHand: () => void;
@@ -137,6 +141,7 @@ interface StoreState {
     resolveShowdown: () => void;
     viewAnalysis: () => void;
     resetGame: () => void;
+    setTrainingMode: (enabled: boolean) => void;
 }
 
 // ── Store ────────────────────────────────────────────────────────────
@@ -159,6 +164,8 @@ export const useGameStore = create<StoreState>((set, get) => ({
     handHistory: [],
     analysisData: null,
     sessionAnalyses: [],
+    trainingMode: false,
+    isProcessingAI: false,
 
     // ── updateSettings ──
     updateSettings: (newSettings) => {
@@ -700,6 +707,10 @@ export const useGameStore = create<StoreState>((set, get) => ({
             handHistory: [],
             analysisData: null,
             sessionAnalyses: [],
+            isProcessingAI: false,
         });
     },
+
+    // ── setTrainingMode ──
+    setTrainingMode: (enabled) => set({ trainingMode: enabled }),
 }));

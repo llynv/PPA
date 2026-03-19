@@ -132,6 +132,7 @@ export interface Decision {
         optimalSize: number;
         sizingError: number;
     };
+    hintUsed?: boolean;
 }
 
 export interface Mistake {
