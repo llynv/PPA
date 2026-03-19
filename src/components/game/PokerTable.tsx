@@ -124,6 +124,9 @@ export function PokerTable() {
                             isActive={!isShowdown && i === activePlayerIndex}
                             isDealer={i === dealerIndex}
                             position={seatPositions[i] ?? "top"}
+                            seatIndex={i}
+                            dealerIndex={dealerIndex}
+                            playerCount={players.length}
                         />
                     ))}
 

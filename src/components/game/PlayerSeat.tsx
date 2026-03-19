@@ -2,6 +2,7 @@ import { useSyncExternalStore } from "react";
 import type { Card, Player, BettingRound } from "../../types/poker";
 import { suitSymbol, suitColor } from "../../lib/deck";
 import { useGameStore } from "../../store/gameStore";
+import { getPosition } from "../../lib/poker-engine";
 
 // ── Orientation Hook ────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ function CardDisplay({
 }) {
     if (faceDown) {
         return (
-            <div className="w-8 h-11 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
+            <div className="w-7 h-10 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
                 <span className="text-slate-400 text-xs">🂠</span>
             </div>
         );
@@ -45,10 +46,10 @@ function CardDisplay({
 
     return (
         <div
-            className={`w-8 h-11 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
+            className={`w-7 h-10 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
         >
-            <span className="text-xs md:text-sm font-bold">{card.rank}</span>
-            <span className="text-sm md:text-lg">{suitSymbol(card.suit)}</span>
+            <span className="text-[10px] md:text-sm font-bold">{card.rank}</span>
+            <span className="text-xs md:text-lg">{suitSymbol(card.suit)}</span>
         </div>
     );
 }
@@ -99,6 +100,9 @@ interface PlayerSeatProps {
     isActive: boolean;
     isDealer: boolean;
     position: SeatPosition;
+    seatIndex: number;
+    dealerIndex: number;
+    playerCount: number;
 }
 
 export function PlayerSeat({
@@ -106,6 +110,9 @@ export function PlayerSeat({
     isActive,
     isDealer,
     position,
+    seatIndex,
+    dealerIndex,
+    playerCount,
 }: PlayerSeatProps) {
     const currentRound = useGameStore((s) => s.currentRound);
     const gamePhase = useGameStore((s) => s.gamePhase);
@@ -117,8 +124,16 @@ export function PlayerSeat({
     const isAllIn = player.isAllIn;
     const isWinner = gamePhase === "showdown" && player.id === winner;
 
+    // Poker position label (BTN, SB, BB, UTG, etc.)
+    const pokerPosition = getPosition(seatIndex, dealerIndex, playerCount);
+
     // Z-index hierarchy: active z-[15], hero z-[12], others z-10
     const zClass = isActive ? "z-[15]" : player.isHero ? "z-[12]" : "z-10";
+
+    // Active pulse: ring animation (respects prefers-reduced-motion via Tailwind's motion-safe)
+    const activeRingClass = isActive
+        ? "ring-2 ring-emerald-400 border-emerald-500 motion-safe:animate-pulse"
+        : "";
 
     // Landscape: use original fixed Tailwind classes (scrollable layout)
     // Portrait: use percentage-based coordinates (fits viewport)
@@ -136,27 +151,28 @@ export function PlayerSeat({
     return (
         <div {...positionProps}>
             <div
+                aria-label={`${player.name}, ${pokerPosition} position, stack ${player.stack}`}
                 className={`
-          relative flex flex-col items-center gap-1 p-1.5 md:p-3 rounded-xl bg-slate-800 border
-          ${isWinner ? "ring-2 ring-emerald-400 border-emerald-500 shadow-lg shadow-emerald-500/30" : isActive ? "ring-2 ring-emerald-400 border-emerald-500" : "border-slate-600"}
+          relative flex flex-col items-center gap-0.5 md:gap-1 p-1 md:p-2.5 rounded-xl bg-slate-800 border
+          ${isWinner ? "ring-2 ring-emerald-400 border-emerald-500 shadow-lg shadow-emerald-500/30" : activeRingClass || "border-slate-600"}
           ${isFolded ? "opacity-40" : ""}
-          min-w-[90px] md:min-w-[120px]
+          min-w-[80px] md:min-w-[120px]
         `}
             >
                 {/* Dealer button */}
                 {isDealer && (
-                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center text-xs font-bold">
+                    <div className="absolute -top-2 -right-2 w-5 h-5 md:w-6 md:h-6 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center text-[10px] md:text-xs font-bold">
                         D
                     </div>
                 )}
 
                 {/* Player name + personality */}
                 <div className="text-center">
-                    <span className="text-white font-bold text-xs md:text-sm">
+                    <span className="text-white font-bold text-[11px] md:text-sm leading-tight">
                         {player.name}
                     </span>
                     {player.personality && (
-                        <span className="text-slate-400 text-xs ml-1">
+                        <span className="text-slate-400 text-[10px] md:text-xs ml-1">
                             (
                             {PERSONALITY_LABELS[player.personality] ??
                                 player.personality}
@@ -165,9 +181,14 @@ export function PlayerSeat({
                     )}
                 </div>
 
+                {/* Position label badge */}
+                <span className="bg-slate-700 text-slate-300 text-[10px] md:text-xs px-1.5 py-0.5 rounded font-medium">
+                    {pokerPosition}
+                </span>
+
                 {/* Stack */}
-                <div className="text-emerald-400 text-xs md:text-sm font-medium">
-                    💰 ${player.stack.toLocaleString()}
+                <div className="text-emerald-400 text-[11px] md:text-sm font-medium">
+                    ${player.stack.toLocaleString()}
                 </div>
 
                 {/* Hole cards */}
@@ -180,19 +201,19 @@ export function PlayerSeat({
 
                 {/* Status badges */}
                 {isFolded && (
-                    <span className="text-xs bg-slate-600 text-slate-300 px-2 py-0.5 rounded font-medium">
+                    <span className="text-[10px] md:text-xs bg-slate-600 text-slate-300 px-1.5 md:px-2 py-0.5 rounded font-medium">
                         FOLD
                     </span>
                 )}
                 {isAllIn && !isFolded && (
-                    <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded font-bold">
+                    <span className="text-[10px] md:text-xs bg-red-600 text-white px-1.5 md:px-2 py-0.5 rounded font-bold">
                         ALL IN
                     </span>
                 )}
 
                 {/* Current bet */}
                 {player.currentBet > 0 && (
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-[5] bg-amber-600 text-white text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
+                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 z-[5] bg-amber-600 text-white text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full font-medium whitespace-nowrap">
                         ${player.currentBet}
                     </div>
                 )}
