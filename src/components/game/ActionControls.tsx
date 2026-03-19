@@ -83,13 +83,30 @@ export function ActionControls() {
 
     const raiseLabel = currentMaxBet > 0 ? "Raise" : "Bet";
 
+    // Pot odds percentage for call button label
+    const callPotPct =
+        !canCheck && pot > 0
+            ? Math.round((currentBetToCall / pot) * 100)
+            : null;
+
+    // Bet-to-pot ratio for raise slider
+    const raisePotRatio =
+        pot > 0 ? (raiseAmount / pot).toFixed(1) : null;
+
     return (
         <div className="w-full bg-slate-900 border-t border-slate-700 p-3 pb-[env(safe-area-inset-bottom,12px)] flex-shrink-0">
             {/* Raise slider panel */}
             {showRaiseSlider && (
                 <div className="mb-4 space-y-3">
-                    <div className="text-center text-white font-bold text-lg">
-                        {raiseLabel}: ${raiseAmount.toLocaleString()}
+                    <div className="text-center">
+                        <span className="text-white font-bold text-lg">
+                            {raiseLabel}: ${raiseAmount.toLocaleString()}
+                        </span>
+                        {raisePotRatio && (
+                            <span className="text-slate-400 text-sm ml-2">
+                                ({raisePotRatio}x pot)
+                            </span>
+                        )}
                     </div>
 
                     {/* Slider */}
@@ -150,9 +167,18 @@ export function ActionControls() {
                     onClick={handleCheckCall}
                     className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px]"
                 >
-                    {canCheck
-                        ? "Check"
-                        : `Call $${currentBetToCall.toLocaleString()}`}
+                    {canCheck ? (
+                        "Check"
+                    ) : (
+                        <span>
+                            Call ${currentBetToCall.toLocaleString()}
+                            {callPotPct != null && (
+                                <span className="text-emerald-200 text-xs font-normal ml-1">
+                                    ({callPotPct}%)
+                                </span>
+                            )}
+                        </span>
+                    )}
                 </button>
 
                 <button

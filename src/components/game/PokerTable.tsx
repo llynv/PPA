@@ -4,6 +4,7 @@ import { CommunityCards } from "./CommunityCards";
 import { PotDisplay } from "./PotDisplay";
 import { ActionControls } from "./ActionControls";
 import { ActionToast } from "./ActionToast";
+import { TableHUD } from "./TableHUD";
 
 // ── Showdown Overlay ────────────────────────────────────────────────
 
@@ -139,6 +140,9 @@ export function PokerTable() {
 
                     {/* Pot */}
                     <PotDisplay pot={pot} />
+
+                    {/* Table HUD: pot odds + SPR */}
+                    <TableHUD />
 
                     {/* AI action toast */}
                     <ActionToast />
