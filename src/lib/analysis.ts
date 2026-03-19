@@ -326,6 +326,7 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
             heroGrade: "A+",
             decisions: [],
             totalEvLoss: 0,
+            totalHeroEv: 0,
             mistakes: [],
             handNumber: handHistory.handNumber,
         };
@@ -455,6 +456,10 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
             bigBlind > 0 ? evDiffRaw / bigBlind : evDiffRaw;
         const evDiff = Math.max(0, Math.round(evDiffInBB * 100) / 100);
 
+        // Hero's actual EV in BB (positive = profitable decision)
+        const heroEvInBB = bigBlind > 0 ? heroEv / bigBlind : heroEv;
+        const heroEvRounded = Math.round(heroEvInBB * 100) / 100;
+
         // Build bet size analysis when hero bet or raised
         let betSizeAnalysis: Decision["betSizeAnalysis"];
         if (
@@ -481,6 +486,7 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
             optimalAmount: result.optimalAmount,
             optimalFrequencies: result.frequencies,
             evDiff,
+            heroEv: heroEvRounded,
             equity: result.equity,
             potOdds: result.potOdds,
             spr: result.spr,
@@ -513,12 +519,14 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
     }
 
     const totalEvLoss = decisions.reduce((sum, d) => sum + d.evDiff, 0);
+    const totalHeroEv = decisions.reduce((sum, d) => sum + (d.heroEv ?? 0), 0);
     const heroGrade = calculateGrade(totalEvLoss);
 
     return {
         heroGrade,
         decisions,
         totalEvLoss: Math.round(totalEvLoss * 100) / 100,
+        totalHeroEv: Math.round(totalHeroEv * 100) / 100,
         mistakes,
         handNumber: handHistory.handNumber,
     };

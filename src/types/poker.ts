@@ -134,6 +134,7 @@ export interface Decision {
     };
     hintUsed?: boolean;
     heroIsAllIn?: boolean;
+    heroEv?: number;
 }
 
 export interface Mistake {
@@ -149,6 +150,7 @@ export interface AnalysisData {
     heroGrade: HeroGrade;
     decisions: Decision[];
     totalEvLoss: number;
+    totalHeroEv: number;
     mistakes: Mistake[];
     handNumber: number;
 }

@@ -22,6 +22,7 @@ export function EVTracker({ analyses }: EVTrackerProps) {
     // Single hand: show a simple stat instead of a chart
     if (analyses.length === 1) {
         const single = analyses[0];
+        const heroEv = single.totalHeroEv ?? 0;
         const decisionsWithEv = single.decisions.filter(
             (d) => d.evByAction != null,
         );
@@ -35,12 +36,10 @@ export function EVTracker({ analyses }: EVTrackerProps) {
                         First hand of the session
                     </p>
                     <p
-                        className={`text-2xl font-bold mt-1 ${single.totalEvLoss <= 0 ? "text-emerald-400" : "text-red-400"}`}
+                        className={`text-2xl font-bold mt-1 ${heroEv >= 0 ? "text-emerald-400" : "text-red-400"}`}
                     >
-                        {single.totalEvLoss === 0
-                            ? "0.0"
-                            : `-${single.totalEvLoss.toFixed(1)}`}{" "}
-                        BB
+                        {heroEv >= 0 ? "+" : ""}
+                        {heroEv.toFixed(1)} BB
                     </p>
                     <p className="text-slate-500 text-xs mt-1">
                         Play more hands to see your EV trend
@@ -83,17 +82,16 @@ export function EVTracker({ analyses }: EVTrackerProps) {
 
     const data = analyses.map((a, i) => ({
         hand: a.handNumber,
-        evLoss: Number(
-            (
-                analyses
-                    .slice(0, i + 1)
-                    .reduce((sum, x) => sum + x.totalEvLoss, 0) * -1
-            ).toFixed(2),
+        heroEv: Number(
+            analyses
+                .slice(0, i + 1)
+                .reduce((sum, x) => sum + (x.totalHeroEv ?? 0), 0)
+                .toFixed(2),
         ),
     }));
 
-    const minEV = Math.min(...data.map((d) => d.evLoss));
-    const maxEV = Math.max(...data.map((d) => d.evLoss));
+    const minEV = Math.min(...data.map((d) => d.heroEv));
+    const maxEV = Math.max(...data.map((d) => d.heroEv));
     const yMin = Math.floor(Math.min(minEV, 0) - 1);
     const yMax = Math.ceil(Math.max(maxEV, 0) + 1);
 
@@ -153,16 +151,16 @@ export function EVTracker({ analyses }: EVTrackerProps) {
                     />
                     <Line
                         type="monotone"
-                        dataKey="evLoss"
-                        stroke="#ef4444"
+                        dataKey="heroEv"
+                        stroke="#10b981"
                         strokeWidth={2}
                         dot={{
                             r: 4,
-                            fill: "#ef4444",
+                            fill: "#10b981",
                             stroke: "#1e293b",
                             strokeWidth: 2,
                         }}
-                        activeDot={{ r: 6, fill: "#ef4444" }}
+                        activeDot={{ r: 6, fill: "#10b981" }}
                     />
                 </LineChart>
             </ResponsiveContainer>

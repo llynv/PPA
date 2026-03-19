@@ -4,6 +4,7 @@ import { useGameStore } from "../../store/gameStore";
 interface HeroGradeProps {
     grade: HeroGradeType;
     evLoss: number;
+    heroEv?: number;
     decisions?: Decision[];
 }
 
@@ -32,7 +33,7 @@ function getGradePercent(grade: HeroGradeType): number {
     return map[grade];
 }
 
-export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
+export function HeroGrade({ grade, evLoss, heroEv, decisions }: HeroGradeProps) {
     const color = getGradeColor(grade);
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
@@ -47,7 +48,7 @@ export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
     const decisionCount = decisions?.length;
 
     // Generate summary sentence
-    const summary = generateSummary(grade, mistakeCount, decisionCount, evLoss);
+    const summary = generateSummary(grade, mistakeCount, decisionCount, evLoss, heroEv);
 
     // Session streak: count consecutive hands with the same or better grade
     const streak = getStreak(sessionAnalyses);
@@ -93,8 +94,17 @@ export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
             </svg>
 
             <p className="mt-3 text-lg font-semibold" style={{ color }}>
-                EV Loss: {evLoss > 0 ? "-" : ""}
-                {Math.abs(evLoss).toFixed(1)} BB
+                {heroEv != null ? (
+                    <>
+                        EV: {heroEv >= 0 ? "+" : ""}
+                        {heroEv.toFixed(1)} BB
+                    </>
+                ) : (
+                    <>
+                        EV Loss: {evLoss > 0 ? "-" : ""}
+                        {Math.abs(evLoss).toFixed(1)} BB
+                    </>
+                )}
             </p>
 
             {decisionCount != null && (
@@ -137,20 +147,27 @@ function generateSummary(
     mistakeCount: number | undefined,
     decisionCount: number | undefined,
     evLoss: number,
+    heroEv?: number,
 ): string {
     if (decisionCount == null) return "";
 
+    const evStr = heroEv != null
+        ? `${heroEv >= 0 ? "+" : ""}${heroEv.toFixed(1)} BB EV`
+        : `${evLoss.toFixed(1)} BB left on the table`;
+
     if (grade.startsWith("A") && (mistakeCount ?? 0) === 0) {
-        return "Excellent play — no mistakes detected.";
+        return heroEv != null && heroEv > 0
+            ? `Excellent play — earned ${evStr} with no mistakes.`
+            : "Excellent play — no mistakes detected.";
     }
     if (grade.startsWith("A")) {
-        return `Strong play — ${mistakeCount === 1 ? "one minor error" : `${mistakeCount} small errors`} overall.`;
+        return `Strong play (${evStr}) — ${mistakeCount === 1 ? "one minor error" : `${mistakeCount} small errors`} overall.`;
     }
     if (grade.startsWith("B")) {
-        return `Good play with room to improve. ${evLoss.toFixed(1)} BB left on the table.`;
+        return `Good play with room to improve. ${evStr}.`;
     }
     if (grade.startsWith("C")) {
-        return `Mixed results — some key decisions cost you ${evLoss.toFixed(1)} BB.`;
+        return `Mixed results — some key decisions cost you. ${evStr}.`;
     }
     return `Several costly mistakes. Review the decisions below to improve.`;
 }

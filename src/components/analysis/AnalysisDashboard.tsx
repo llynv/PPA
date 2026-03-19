@@ -91,6 +91,7 @@ export function AnalysisDashboard() {
                 <HeroGrade
                     grade={analysisData.heroGrade}
                     evLoss={analysisData.totalEvLoss}
+                    heroEv={analysisData.totalHeroEv}
                     decisions={analysisData.decisions}
                 />
             </div>
