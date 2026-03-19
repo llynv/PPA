@@ -1,14 +1,8 @@
 import { AppShell } from './components/layout/AppShell';
 import { GameSettings } from './components/settings/GameSettings';
+import { PokerTable } from './components/game/PokerTable';
+import { AnalysisDashboard } from './components/analysis/AnalysisDashboard';
 import { useGameStore } from './store/gameStore';
-
-function Placeholder({ name }: { name: string }) {
-  return (
-    <div className="flex items-center justify-center h-full">
-      <p className="text-slate-400 text-lg">{name} - Coming Soon</p>
-    </div>
-  );
-}
 
 function ShowdownView() {
   const winner = useGameStore((s) => s.winner);
@@ -48,9 +42,9 @@ function App() {
   return (
     <AppShell>
       {gamePhase === 'settings' && <GameSettings />}
-      {gamePhase === 'playing' && <Placeholder name="PokerTable" />}
+      {gamePhase === 'playing' && <PokerTable />}
       {gamePhase === 'showdown' && <ShowdownView />}
-      {gamePhase === 'analysis' && <Placeholder name="AnalysisDashboard" />}
+      {gamePhase === 'analysis' && <AnalysisDashboard />}
     </AppShell>
   );
 }
