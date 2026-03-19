@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateDecision } from '../decision';
-import type { Card, Rank, Suit, DecisionContext, DecisionResult } from '../../../types/poker';
+import type { Card, Rank, Suit, DecisionContext } from '../../../types/poker';
 
 // ── Helpers ─────────────────────────────────────────────────────────
 
