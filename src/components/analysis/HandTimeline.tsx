@@ -96,8 +96,8 @@ function TimelineStep({ decision, round, isLast }: StepProps) {
             <p>Call: {Math.round(decision.optimalFrequencies.call * 100)}%</p>
             <p>Raise: {Math.round(decision.optimalFrequencies.raise * 100)}%</p>
           </div>
-          <p className={`font-medium ${decision.evDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            EV: {decision.evDiff >= 0 ? '+' : ''}{decision.evDiff.toFixed(2)} BB
+          <p className={`font-medium ${decision.evDiff <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            EV: {decision.evDiff === 0 ? '0.00' : `-${decision.evDiff.toFixed(2)}`} BB
           </p>
         </div>
       )}
@@ -197,8 +197,8 @@ function MobileStep({ round, decision, dotColor, isLast }: MobileStepProps) {
               <p>Call: {Math.round(decision.optimalFrequencies.call * 100)}%</p>
               <p>Raise: {Math.round(decision.optimalFrequencies.raise * 100)}%</p>
             </div>
-            <p className={`font-medium ${decision.evDiff >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-              EV: {decision.evDiff >= 0 ? '+' : ''}{decision.evDiff.toFixed(2)} BB
+            <p className={`font-medium ${decision.evDiff <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+              EV: {decision.evDiff === 0 ? '0.00' : `-${decision.evDiff.toFixed(2)}`} BB
             </p>
           </div>
         )}

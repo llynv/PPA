@@ -433,9 +433,8 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
   const communityCards = handHistory.communityCards;
   const actions = handHistory.actions;
 
-  // Find the big blind for EV calculations
-  // Estimate: look for the largest forced bet preflop (usually 2nd player action)
-  const bigBlind = estimateBigBlind(actions);
+  // Use the recorded big blind, falling back to estimation for backward compatibility
+  const bigBlind = handHistory.bigBlind ?? estimateBigBlind(actions);
 
   const decisions: Decision[] = [];
   const mistakes: Mistake[] = [];

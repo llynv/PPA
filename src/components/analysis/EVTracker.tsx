@@ -27,8 +27,8 @@ export function EVTracker({ analyses }: EVTrackerProps) {
         <h3 className="text-lg font-semibold text-slate-100 mb-4">Session EV Tracker</h3>
         <div className="text-center py-4">
           <p className="text-slate-400 text-sm">First hand of the session</p>
-          <p className={`text-2xl font-bold mt-1 ${single.totalEvLoss >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-            {single.totalEvLoss >= 0 ? '+' : ''}{single.totalEvLoss.toFixed(1)} BB
+          <p className={`text-2xl font-bold mt-1 ${single.totalEvLoss <= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+            {single.totalEvLoss === 0 ? '0.0' : `-${single.totalEvLoss.toFixed(1)}`} BB
           </p>
           <p className="text-slate-500 text-xs mt-1">
             Play more hands to see your EV trend
@@ -41,7 +41,7 @@ export function EVTracker({ analyses }: EVTrackerProps) {
   const data = analyses.map((a, i) => ({
     hand: a.handNumber,
     evLoss: Number(
-      analyses.slice(0, i + 1).reduce((sum, x) => sum + x.totalEvLoss, 0).toFixed(2)
+      (analyses.slice(0, i + 1).reduce((sum, x) => sum + x.totalEvLoss, 0) * -1).toFixed(2)
     ),
   }));
 

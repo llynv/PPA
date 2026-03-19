@@ -12,7 +12,7 @@ import type {
 } from '../types/poker';
 import { createDeck, shuffleDeck, dealCards } from '../lib/deck';
 import { AI_NAMES, getRandomPersonality, getAIDecision } from '../lib/ai';
-import { getBestHand } from '../lib/evaluator';
+import { getBestHand, compareHands } from '../lib/evaluator';
 import { analyzeHand } from '../lib/analysis';
 
 // ── Defaults ────────────────────────────────────────────────────────
@@ -85,19 +85,17 @@ function getCurrentBet(players: Player[]): number {
 }
 
 /**
- * Calculates the minimum raise amount based on the last raise or big blind.
+ * Calculates the minimum raise amount based on the big blind.
+ *
+ * Note: In full poker rules the minimum raise must match the last raise
+ * increment, which requires reconstructing per-player cumulative bets
+ * per round. Since `action.amount` records the pot-delta (additional chips),
+ * not the total commitment, a simple max-of-amounts approach is incorrect.
+ * For a practice app with AI opponents that size their own raises via pot
+ * multipliers, returning the big blind is a correct-enough simplification.
  */
-function getMinRaise(actions: PlayerAction[], currentRound: BettingRound, bigBlind: number): number {
-  const roundActions = actions.filter((a) => a.round === currentRound);
-  let lastRaiseSize = bigBlind;
-
-  for (const action of roundActions) {
-    if ((action.type === 'raise' || action.type === 'bet') && action.amount != null) {
-      lastRaiseSize = Math.max(lastRaiseSize, action.amount);
-    }
-  }
-
-  return lastRaiseSize;
+function getMinRaise(_actions: PlayerAction[], _currentRound: BettingRound, bigBlind: number): number {
+  return bigBlind;
 }
 
 // ── Store Types ─────────────────────────────────────────────────────
@@ -168,7 +166,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
     const state = get();
     const { settings, gamePhase } = state;
 
-    if (gamePhase !== 'settings' && gamePhase !== 'analysis') return;
+    if (gamePhase !== 'settings' && gamePhase !== 'analysis' && gamePhase !== 'showdown') return;
 
     const numPlayers = settings.playerCount;
     const isNewGame = gamePhase === 'settings';
@@ -346,6 +344,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
 
       const handHistoryEntry: HandHistory = {
         handNumber: state.handNumber,
+        bigBlind: state.settings.bigBlind,
         players: updatedPlayers.map((p) => ({ ...p })),
         communityCards: [...state.communityCards],
         actions: updatedActions,
@@ -505,49 +504,89 @@ export const useGameStore = create<StoreState>((set, get) => ({
     const state = get();
     const { players, communityCards, pot, handNumber, actions } = state;
 
-    // Evaluate hands of non-folded players
     const contenders = players
       .map((p, i) => ({ player: p, index: i }))
       .filter(({ player }) => !player.isFolded);
 
     if (contenders.length === 0) return;
 
-    let bestPlayer = contenders[0];
-    let bestDescription = '';
+    if (communityCards.length < 3) {
+      // Not enough community cards — first contender wins (shouldn't normally happen)
+      const winner = contenders[0];
+      const updatedPlayers = players.map((p, i) => {
+        if (i === winner.index) return { ...p, stack: p.stack + pot };
+        return { ...p };
+      });
 
-    if (communityCards.length >= 3) {
-      // We can evaluate hands
-      let bestEval = getBestHand(bestPlayer.player.holeCards, communityCards);
-      bestDescription = bestEval.description;
+      const handHistoryEntry: HandHistory = {
+        handNumber,
+        bigBlind: state.settings.bigBlind,
+        players: updatedPlayers.map((p) => ({ ...p })),
+        communityCards: [...communityCards],
+        actions: [...actions],
+        pot,
+        winnerId: winner.player.id,
+        winnerHand: undefined,
+        potWon: pot,
+      };
 
-      for (let i = 1; i < contenders.length; i++) {
-        const contender = contenders[i];
-        const evalResult = getBestHand(contender.player.holeCards, communityCards);
-        if (evalResult.strength > bestEval.strength) {
-          bestEval = evalResult;
-          bestPlayer = contender;
-          bestDescription = evalResult.description;
-        }
+      set({
+        players: updatedPlayers,
+        pot: 0,
+        gamePhase: 'showdown',
+        winner: winner.player.id,
+        handHistory: [...state.handHistory, handHistoryEntry],
+      });
+      return;
+    }
+
+    // Find the best hand using compareHands for precise tiebreaker logic
+    let bestContenders = [contenders[0]];
+    let bestCards = [...contenders[0].player.holeCards, ...communityCards];
+
+    for (let i = 1; i < contenders.length; i++) {
+      const contender = contenders[i];
+      const contenderCards = [...contender.player.holeCards, ...communityCards];
+      const comparison = compareHands(contenderCards, bestCards);
+
+      if (comparison > 0) {
+        // This hand is better
+        bestContenders = [contender];
+        bestCards = contenderCards;
+      } else if (comparison === 0) {
+        // Tie — add to winners
+        bestContenders.push(contender);
       }
     }
-    // If no community cards (everyone folded preflop), first contender wins
-    // (this case is already handled in performAction, but keep as safety)
+
+    // Split pot among winners
+    const share = Math.floor(pot / bestContenders.length);
+    const remainder = pot - share * bestContenders.length;
+    const winnerIndices = new Set(bestContenders.map((c) => c.index));
 
     const updatedPlayers = players.map((p, i) => {
-      if (i === bestPlayer.index) {
-        return { ...p, stack: p.stack + pot };
+      if (winnerIndices.has(i)) {
+        // First winner gets any remainder (1 chip rounding)
+        const extra = i === bestContenders[0].index ? remainder : 0;
+        return { ...p, stack: p.stack + share + extra };
       }
       return { ...p };
     });
 
+    const bestEval = getBestHand(
+      bestContenders[0].player.holeCards,
+      communityCards,
+    );
+
     const handHistoryEntry: HandHistory = {
       handNumber,
+      bigBlind: state.settings.bigBlind,
       players: updatedPlayers.map((p) => ({ ...p })),
       communityCards: [...communityCards],
       actions: [...actions],
       pot,
-      winnerId: bestPlayer.player.id,
-      winnerHand: bestDescription || undefined,
+      winnerId: bestContenders[0].player.id,
+      winnerHand: bestEval.description,
       potWon: pot,
     };
 
@@ -555,7 +594,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
       players: updatedPlayers,
       pot: 0,
       gamePhase: 'showdown',
-      winner: bestPlayer.player.id,
+      winner: bestContenders[0].player.id,
       handHistory: [...state.handHistory, handHistoryEntry],
     });
   },

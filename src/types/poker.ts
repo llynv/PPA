@@ -77,6 +77,7 @@ export interface GameState {
 
 export interface HandHistory {
   handNumber: number;
+  bigBlind?: number;
   players: Player[];
   communityCards: Card[];
   actions: PlayerAction[];

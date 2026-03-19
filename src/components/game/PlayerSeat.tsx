@@ -35,7 +35,8 @@ type SeatPosition =
   | 'top-left'
   | 'top-right'
   | 'bottom-left'
-  | 'bottom-right';
+  | 'bottom-right'
+  | 'left-top';
 
 const POSITION_CLASSES: Record<SeatPosition, string> = {
   top: 'absolute top-2 left-1/2 -translate-x-1/2',
@@ -46,6 +47,7 @@ const POSITION_CLASSES: Record<SeatPosition, string> = {
   'top-right': 'absolute top-6 right-8',
   'bottom-left': 'absolute bottom-6 left-8',
   'bottom-right': 'absolute bottom-6 right-8',
+  'left-top': 'absolute top-1/3 left-4',
 };
 
 // ── Personality Labels ──────────────────────────────────────────────

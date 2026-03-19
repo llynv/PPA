@@ -9,8 +9,14 @@ function ShowdownView() {
   const players = useGameStore((s) => s.players);
   const viewAnalysis = useGameStore((s) => s.viewAnalysis);
   const startHand = useGameStore((s) => s.startHand);
+  const processAITurns = useGameStore((s) => s.processAITurns);
 
   const winnerPlayer = players.find((p) => p.id === winner);
+
+  const handleNextHand = () => {
+    startHand();
+    processAITurns();
+  };
 
   return (
     <div className="flex flex-col items-center justify-center h-full gap-6">
@@ -26,7 +32,7 @@ function ShowdownView() {
           View Analysis
         </button>
         <button
-          onClick={startHand}
+          onClick={handleNextHand}
           className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
         >
           Next Hand
