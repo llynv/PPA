@@ -5,6 +5,7 @@ import { PotDisplay } from "./PotDisplay";
 import { ActionControls } from "./ActionControls";
 import { ActionToast } from "./ActionToast";
 import { TableHUD } from "./TableHUD";
+import { HintPanel } from "./HintPanel";
 
 // ── Showdown Overlay ────────────────────────────────────────────────
 
@@ -149,8 +150,15 @@ export function PokerTable() {
                 </div>
             </div>
 
-            {/* Action controls or showdown overlay */}
-            {isShowdown ? <ShowdownOverlay /> : <ActionControls />}
+            {/* Hint panel + Action controls or showdown overlay */}
+            {isShowdown ? (
+                <ShowdownOverlay />
+            ) : (
+                <>
+                    <HintPanel />
+                    <ActionControls />
+                </>
+            )}
         </div>
     );
 }
