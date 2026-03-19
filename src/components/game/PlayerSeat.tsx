@@ -7,7 +7,7 @@ import { useGameStore } from '../../store/gameStore';
 function CardDisplay({ card, faceDown = false }: { card: Card; faceDown?: boolean }) {
   if (faceDown) {
     return (
-      <div className="w-12 h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
+      <div className="w-8 h-11 md:w-12 md:h-16 bg-slate-600 rounded-lg border border-slate-500 flex items-center justify-center">
         <span className="text-slate-400 text-xs">🂠</span>
       </div>
     );
@@ -17,10 +17,10 @@ function CardDisplay({ card, faceDown = false }: { card: Card; faceDown?: boolea
 
   return (
     <div
-      className={`w-12 h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
+      className={`w-8 h-11 md:w-12 md:h-16 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
     >
-      <span className="text-sm font-bold">{card.rank}</span>
-      <span className="text-lg">{suitSymbol(card.suit)}</span>
+      <span className="text-xs md:text-sm font-bold">{card.rank}</span>
+      <span className="text-sm md:text-lg">{suitSymbol(card.suit)}</span>
     </div>
   );
 }
@@ -71,19 +71,21 @@ interface PlayerSeatProps {
 export function PlayerSeat({ player, isActive, isDealer, position }: PlayerSeatProps) {
   const currentRound = useGameStore((s) => s.currentRound);
   const gamePhase = useGameStore((s) => s.gamePhase);
+  const winner = useGameStore((s) => s.winner);
 
   const showCards = player.isHero || gamePhase === 'showdown';
   const isFolded = player.isFolded;
   const isAllIn = player.isAllIn;
+  const isWinner = gamePhase === 'showdown' && player.id === winner;
 
   return (
     <div className={`${POSITION_CLASSES[position]} z-10`}>
       <div
         className={`
-          relative flex flex-col items-center gap-1 p-3 rounded-xl bg-slate-800 border
-          ${isActive ? 'ring-2 ring-emerald-400 border-emerald-500' : 'border-slate-600'}
-          ${isFolded ? 'opacity-50' : ''}
-          min-w-[120px]
+          relative flex flex-col items-center gap-1 p-1.5 md:p-3 rounded-xl bg-slate-800 border
+          ${isWinner ? 'ring-2 ring-emerald-400 border-emerald-500 shadow-lg shadow-emerald-500/30' : isActive ? 'ring-2 ring-emerald-400 border-emerald-500' : 'border-slate-600'}
+          ${isFolded ? 'opacity-40' : ''}
+          min-w-[90px] md:min-w-[120px]
         `}
       >
         {/* Dealer button */}
@@ -95,7 +97,7 @@ export function PlayerSeat({ player, isActive, isDealer, position }: PlayerSeatP
 
         {/* Player name + personality */}
         <div className="text-center">
-          <span className="text-white font-bold text-sm">{player.name}</span>
+          <span className="text-white font-bold text-xs md:text-sm">{player.name}</span>
           {player.personality && (
             <span className="text-slate-400 text-xs ml-1">
               ({PERSONALITY_LABELS[player.personality] ?? player.personality})
@@ -104,7 +106,7 @@ export function PlayerSeat({ player, isActive, isDealer, position }: PlayerSeatP
         </div>
 
         {/* Stack */}
-        <div className="text-emerald-400 text-sm font-medium">
+        <div className="text-emerald-400 text-xs md:text-sm font-medium">
           💰 ${player.stack.toLocaleString()}
         </div>
 

@@ -114,6 +114,7 @@ interface StoreState {
   handNumber: number;
   gamePhase: GamePhase;
   winner?: string;
+  winnerHand?: string;
   handHistory: HandHistory[];
 
   // Analysis
@@ -147,6 +148,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
   handNumber: 0,
   gamePhase: 'settings',
   winner: undefined,
+  winnerHand: undefined,
   handHistory: [],
   analysisData: null,
   sessionAnalyses: [],
@@ -273,6 +275,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
       handNumber,
       gamePhase: 'playing',
       winner: undefined,
+      winnerHand: undefined,
       analysisData: null,
     });
   },
@@ -359,8 +362,10 @@ export const useGameStore = create<StoreState>((set, get) => ({
         actions: updatedActions,
         gamePhase: 'showdown',
         winner: winner.id,
+        winnerHand: undefined,
         handHistory: [...state.handHistory, handHistoryEntry],
       });
+      get().viewAnalysis();
       return;
     }
 
@@ -535,6 +540,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
         pot: 0,
         gamePhase: 'showdown',
         winner: winner.player.id,
+        winnerHand: undefined,
         handHistory: [...state.handHistory, handHistoryEntry],
       });
       return;
@@ -595,6 +601,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
       pot: 0,
       gamePhase: 'showdown',
       winner: bestContenders[0].player.id,
+      winnerHand: bestEval.description,
       handHistory: [...state.handHistory, handHistoryEntry],
     });
   },
@@ -631,6 +638,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
       handNumber: 0,
       gamePhase: 'settings',
       winner: undefined,
+      winnerHand: undefined,
       handHistory: [],
       analysisData: null,
       sessionAnalyses: [],
