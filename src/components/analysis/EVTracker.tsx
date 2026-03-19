@@ -22,6 +22,9 @@ export function EVTracker({ analyses }: EVTrackerProps) {
     // Single hand: show a simple stat instead of a chart
     if (analyses.length === 1) {
         const single = analyses[0];
+        const decisionsWithEv = single.decisions.filter(
+            (d) => d.evByAction != null,
+        );
         return (
             <div className="bg-slate-800 rounded-xl p-6 shadow-lg">
                 <h3 className="text-lg font-semibold text-slate-100 mb-4">
@@ -43,6 +46,37 @@ export function EVTracker({ analyses }: EVTrackerProps) {
                         Play more hands to see your EV trend
                     </p>
                 </div>
+
+                {/* Per-action EV for latest hand decisions */}
+                {decisionsWithEv.length > 0 && (
+                    <div className="border-t border-slate-700 pt-3 mt-3">
+                        <p className="text-sm text-slate-400 mb-2">
+                            EV by Action (this hand)
+                        </p>
+                        <div className="space-y-1.5">
+                            {decisionsWithEv.map((d) => (
+                                <div
+                                    key={d.round}
+                                    className="grid grid-cols-4 gap-2 text-xs items-center"
+                                >
+                                    <span className="text-slate-400 font-medium">
+                                        {d.round.charAt(0).toUpperCase() +
+                                            d.round.slice(1)}
+                                    </span>
+                                    <span className="text-center text-red-400">
+                                        F: {d.evByAction!.fold.toFixed(2)}
+                                    </span>
+                                    <span className="text-center text-emerald-400">
+                                        C: {d.evByAction!.call.toFixed(2)}
+                                    </span>
+                                    <span className="text-center text-amber-400">
+                                        R: {d.evByAction!.raise.toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         );
     }
@@ -132,6 +166,44 @@ export function EVTracker({ analyses }: EVTrackerProps) {
                     />
                 </LineChart>
             </ResponsiveContainer>
+
+            {/* Per-action EV for latest hand */}
+            {(() => {
+                const latest = analyses[analyses.length - 1];
+                const decisionsWithEv = latest.decisions.filter(
+                    (d) => d.evByAction != null,
+                );
+                if (decisionsWithEv.length === 0) return null;
+                return (
+                    <div className="border-t border-slate-700 pt-3 mt-3">
+                        <p className="text-sm text-slate-400 mb-2">
+                            EV by Action (latest hand)
+                        </p>
+                        <div className="space-y-1.5">
+                            {decisionsWithEv.map((d) => (
+                                <div
+                                    key={d.round}
+                                    className="grid grid-cols-4 gap-2 text-xs items-center"
+                                >
+                                    <span className="text-slate-400 font-medium">
+                                        {d.round.charAt(0).toUpperCase() +
+                                            d.round.slice(1)}
+                                    </span>
+                                    <span className="text-center text-red-400">
+                                        F: {d.evByAction!.fold.toFixed(2)}
+                                    </span>
+                                    <span className="text-center text-emerald-400">
+                                        C: {d.evByAction!.call.toFixed(2)}
+                                    </span>
+                                    <span className="text-center text-amber-400">
+                                        R: {d.evByAction!.raise.toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 }

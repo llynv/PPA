@@ -33,6 +33,11 @@ export function AnalysisDashboard() {
         (a, b) => SEVERITY_ORDER[a.severity] - SEVERITY_ORDER[b.severity],
     );
 
+    // Map decisions by round for correlating mistakes to decisions
+    const decisionByRound = new Map(
+        analysisData.decisions.map((d) => [d.round, d]),
+    );
+
     const handleNextHand = () => {
         startHand();
         processAITurns();
@@ -50,6 +55,7 @@ export function AnalysisDashboard() {
                 <HeroGrade
                     grade={analysisData.heroGrade}
                     evLoss={analysisData.totalEvLoss}
+                    decisions={analysisData.decisions}
                 />
             </div>
 
@@ -67,7 +73,12 @@ export function AnalysisDashboard() {
                 {sortedMistakes.length > 0 ? (
                     <div className="space-y-3">
                         {sortedMistakes.map((mistake, i) => (
-                            <MistakeCard key={i} mistake={mistake} index={i} />
+                            <MistakeCard
+                                key={i}
+                                mistake={mistake}
+                                index={i}
+                                decision={decisionByRound.get(mistake.round)}
+                            />
                         ))}
                     </div>
                 ) : (

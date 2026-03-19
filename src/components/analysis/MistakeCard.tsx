@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import type { Mistake } from "../../types/poker";
+import type { Mistake, Decision } from "../../types/poker";
 
 interface MistakeCardProps {
     mistake: Mistake;
     index: number;
+    decision?: Decision;
 }
 
 const SEVERITY_COLORS: Record<Mistake["severity"], string> = {
@@ -27,7 +28,7 @@ function formatRound(round: string): string {
     return round.charAt(0).toUpperCase() + round.slice(1);
 }
 
-export function MistakeCard({ mistake, index }: MistakeCardProps) {
+export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
     const [expanded, setExpanded] = useState(false);
 
     const borderColor = SEVERITY_COLORS[mistake.severity];
@@ -85,6 +86,51 @@ export function MistakeCard({ mistake, index }: MistakeCardProps) {
                         {mistake.description}
                     </p>
 
+                    {/* Reasoning from analysis engine */}
+                    {decision?.reasoning != null && (
+                        <p className="text-slate-400 text-sm italic border-l-2 border-slate-600 pl-3">
+                            {decision.reasoning}
+                        </p>
+                    )}
+
+                    {/* Equity / Pot Odds / SPR badges */}
+                    {(decision?.equity != null || decision?.potOdds != null || decision?.spr != null) && (
+                        <div className="flex flex-wrap gap-2">
+                            {decision.equity != null && (
+                                <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 text-xs font-medium">
+                                    Equity: {(decision.equity * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {decision.potOdds != null && (
+                                <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 text-xs font-medium">
+                                    Pot Odds: {(decision.potOdds * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {decision.spr != null && (
+                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs font-medium">
+                                    SPR: {decision.spr.toFixed(1)}
+                                </span>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Bet sizing analysis */}
+                    {decision?.betSizeAnalysis != null && (
+                        <div className="text-sm text-slate-400">
+                            <span className="text-slate-500">Sizing: </span>
+                            <span>{decision.betSizeAnalysis.heroSize.toFixed(1)} BB</span>
+                            <span className="text-slate-500"> vs optimal </span>
+                            <span className="text-emerald-400">
+                                {decision.betSizeAnalysis.optimalSize.toFixed(1)} BB
+                            </span>
+                            {decision.betSizeAnalysis.sizingError > 0 && (
+                                <span className="text-red-400 ml-1">
+                                    ({(decision.betSizeAnalysis.sizingError * 100).toFixed(0)}% off)
+                                </span>
+                            )}
+                        </div>
+                    )}
+
                     <div className="flex gap-4 text-sm">
                         <div>
                             <span className="text-slate-500">
@@ -108,6 +154,21 @@ export function MistakeCard({ mistake, index }: MistakeCardProps) {
                             -{Math.abs(mistake.evLoss).toFixed(2)} BB
                         </span>
                     </div>
+
+                    {/* EV by action from decision */}
+                    {decision?.evByAction != null && (
+                        <div className="grid grid-cols-3 gap-2 text-xs text-center">
+                            <div className="px-2 py-1 rounded bg-red-500/10 text-red-400">
+                                Fold: {decision.evByAction.fold.toFixed(2)} BB
+                            </div>
+                            <div className="px-2 py-1 rounded bg-emerald-500/10 text-emerald-400">
+                                Call: {decision.evByAction.call.toFixed(2)} BB
+                            </div>
+                            <div className="px-2 py-1 rounded bg-amber-500/10 text-amber-400">
+                                Raise: {decision.evByAction.raise.toFixed(2)} BB
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

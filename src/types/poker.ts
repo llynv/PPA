@@ -119,6 +119,19 @@ export interface Decision {
         raise: number;
     };
     evDiff: number;
+    // New fields (optional for backward compat during migration)
+    equity?: number;
+    potOdds?: number;
+    spr?: number;
+    draws?: DrawInfo;
+    boardTexture?: BoardTexture;
+    reasoning?: string;
+    evByAction?: { fold: number; call: number; raise: number };
+    betSizeAnalysis?: {
+        heroSize: number;
+        optimalSize: number;
+        sizingError: number;
+    };
 }
 
 export interface Mistake {
@@ -159,4 +172,97 @@ export interface HandEvaluation {
     description: string;
     /** Normalized hand strength from 0 to 1 */
     strength: number;
+}
+
+// ── Position Types ──────────────────────────────────────────────────
+
+export type Position = 'UTG' | 'UTG1' | 'MP' | 'LJ' | 'HJ' | 'CO' | 'BTN' | 'SB' | 'BB';
+
+// ── Draw Detection ──────────────────────────────────────────────────
+
+export interface DrawInfo {
+    flushDraw: boolean;
+    flushDrawOuts: number;
+    oesD: boolean;
+    gutshot: boolean;
+    straightDrawOuts: number;
+    backdoorFlush: boolean;
+    backdoorStraight: boolean;
+    totalOuts: number;
+    drawEquity: number;
+}
+
+// ── Board Texture ───────────────────────────────────────────────────
+
+export interface BoardTexture {
+    wetness: 'dry' | 'semi-wet' | 'wet' | 'very-wet';
+    isMonotone: boolean;
+    isTwoTone: boolean;
+    isRainbow: boolean;
+    isPaired: boolean;
+    isTrips: boolean;
+    highCardCount: number;
+    connectedness: number;
+    possibleStraights: number;
+    possibleFlushes: boolean;
+}
+
+// ── Decision Context & Result ───────────────────────────────────────
+
+export interface DecisionContext {
+    holeCards: Card[];
+    communityCards: Card[];
+    position: Position;
+    round: BettingRound;
+    pot: number;
+    toCall: number;
+    currentBet: number;
+    stack: number;
+    bigBlind: number;
+    numActivePlayers: number;
+    numPlayersInHand: number;
+    isFirstToAct: boolean;
+    facingRaise: boolean;
+    raiserPosition?: Position;
+    actionHistory: PlayerAction[];
+}
+
+export interface DecisionResult {
+    optimalAction: ActionType;
+    optimalAmount?: number;
+    frequencies: { fold: number; call: number; raise: number };
+    reasoning: string;
+    equity: number;
+    potOdds: number;
+    impliedOdds: number;
+    spr: number;
+    draws: DrawInfo;
+    boardTexture: BoardTexture;
+    evByAction: {
+        fold: number;
+        call: number;
+        raise: number;
+    };
+}
+
+// ── Preflop Ranges ──────────────────────────────────────────────────
+
+export type HandCombo = string; // "AKs", "TT", "72o"
+
+export interface PositionRanges {
+    openRaise: Set<HandCombo>;
+    threeBet: Set<HandCombo>;
+    callOpen: Set<HandCombo>;
+    call3Bet: Set<HandCombo>;
+    fourBet: Set<HandCombo>;
+}
+
+// ── Equity ──────────────────────────────────────────────────────────
+
+export interface EquityResult {
+    equity: number;
+    samples: number;
+    wins: number;
+    ties: number;
+    losses: number;
 }

@@ -456,6 +456,11 @@ export const useGameStore = create<StoreState>((set, get) => ({
             );
             const numActive = countActivePlayers(players);
 
+            // Find the active player's seat index
+            const aiSeatIndex = players.findIndex(
+                (p) => p.id === activePlayer.id,
+            );
+
             const decision = getAIDecision({
                 player: activePlayer,
                 communityCards,
@@ -464,6 +469,11 @@ export const useGameStore = create<StoreState>((set, get) => ({
                 minRaise,
                 round: currentRound,
                 numActivePlayers: numActive,
+                dealerIndex: get().dealerIndex,
+                seatIndex: aiSeatIndex,
+                numPlayers: players.length,
+                actions: [...actions],
+                bigBlind: settings.bigBlind,
             });
 
             get().performAction(decision.action, decision.amount);

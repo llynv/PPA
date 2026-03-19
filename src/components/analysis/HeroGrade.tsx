@@ -1,8 +1,9 @@
-import type { HeroGrade as HeroGradeType } from "../../types/poker";
+import type { HeroGrade as HeroGradeType, Decision } from "../../types/poker";
 
 interface HeroGradeProps {
     grade: HeroGradeType;
     evLoss: number;
+    decisions?: Decision[];
 }
 
 function getGradeColor(grade: HeroGradeType): string {
@@ -30,12 +31,18 @@ function getGradePercent(grade: HeroGradeType): number {
     return map[grade];
 }
 
-export function HeroGrade({ grade, evLoss }: HeroGradeProps) {
+export function HeroGrade({ grade, evLoss, decisions }: HeroGradeProps) {
     const color = getGradeColor(grade);
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
     const gradePercent = getGradePercent(grade);
     const offset = circumference * (1 - gradePercent / 100);
+
+    // Count mistakes (decisions where heroAction !== optimalAction)
+    const mistakeCount = decisions
+        ? decisions.filter((d) => d.heroAction !== d.optimalAction).length
+        : undefined;
+    const decisionCount = decisions?.length;
 
     return (
         <div className="bg-slate-800 rounded-xl p-6 shadow-lg flex flex-col items-center">
@@ -81,6 +88,22 @@ export function HeroGrade({ grade, evLoss }: HeroGradeProps) {
                 EV Loss: {evLoss > 0 ? "-" : ""}
                 {Math.abs(evLoss).toFixed(1)} BB
             </p>
+
+            {decisionCount != null && (
+                <p className="text-slate-500 text-sm mt-1">
+                    {decisionCount} decision{decisionCount !== 1 ? "s" : ""}
+                    {mistakeCount != null && mistakeCount > 0 && (
+                        <span className="text-red-400">
+                            {" "}
+                            &middot; {mistakeCount} mistake
+                            {mistakeCount !== 1 ? "s" : ""}
+                        </span>
+                    )}
+                    {mistakeCount === 0 && (
+                        <span className="text-emerald-400"> &middot; perfect</span>
+                    )}
+                </p>
+            )}
         </div>
     );
 }

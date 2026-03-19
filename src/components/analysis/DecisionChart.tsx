@@ -134,6 +134,52 @@ export function DecisionChart({ decisions }: DecisionChartProps) {
             <p className="text-xs text-slate-500 mt-2 text-center">
                 Highlighted bars indicate hero&apos;s actual action
             </p>
+
+            {/* EV by Action breakdown */}
+            {decisions.some((d) => d.evByAction != null) && (
+                <div className="mt-5 border-t border-slate-700 pt-4">
+                    <h4 className="text-sm font-semibold text-slate-300 mb-3">
+                        EV by Action (BB)
+                    </h4>
+                    <div className="space-y-2">
+                        {decisions.map((d) => {
+                            if (d.evByAction == null) return null;
+                            const roundLabel =
+                                d.round.charAt(0).toUpperCase() +
+                                d.round.slice(1);
+                            const heroKey = heroActionToKey(d.heroAction);
+                            return (
+                                <div
+                                    key={d.round}
+                                    className="grid grid-cols-4 gap-2 text-sm items-center"
+                                >
+                                    <span className="text-slate-400 font-medium">
+                                        {roundLabel}
+                                    </span>
+                                    <span
+                                        className={`text-center px-1.5 py-0.5 rounded ${heroKey === "Fold" ? "bg-red-500/20 text-red-300 font-medium" : "text-slate-500"}`}
+                                    >
+                                        F: {d.evByAction.fold.toFixed(2)}
+                                    </span>
+                                    <span
+                                        className={`text-center px-1.5 py-0.5 rounded ${heroKey === "Call" ? "bg-emerald-500/20 text-emerald-300 font-medium" : "text-slate-500"}`}
+                                    >
+                                        C: {d.evByAction.call.toFixed(2)}
+                                    </span>
+                                    <span
+                                        className={`text-center px-1.5 py-0.5 rounded ${heroKey === "Raise" ? "bg-amber-500/20 text-amber-300 font-medium" : "text-slate-500"}`}
+                                    >
+                                        R: {d.evByAction.raise.toFixed(2)}
+                                    </span>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    <p className="text-xs text-slate-500 mt-2">
+                        Hero&apos;s chosen action is highlighted
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

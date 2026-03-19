@@ -1,11 +1,16 @@
 import type {
     Card,
     Player,
+    PlayerAction,
     ActionType,
     BettingRound,
     AIPersonality,
+    Position,
+    DecisionContext,
+    DecisionResult,
 } from "../types/poker";
-import { getBestHand } from "./evaluator";
+import { evaluateDecision } from "./poker-engine/decision";
+import { getPosition } from "./poker-engine/position";
 import { cardValue } from "./deck";
 
 // ── Public Types ────────────────────────────────────────────────────
@@ -18,6 +23,12 @@ export interface AIDecisionParams {
     minRaise: number;
     round: BettingRound;
     numActivePlayers: number;
+    // New fields for poker engine (added in Task 9)
+    dealerIndex?: number;
+    seatIndex?: number;
+    numPlayers?: number;
+    actions?: PlayerAction[];
+    bigBlind?: number;
 }
 
 export interface AIDecisionResult {
@@ -25,7 +36,7 @@ export interface AIDecisionResult {
     amount?: number;
 }
 
-interface PersonalityProfile {
+export interface PersonalityProfile {
     preflopRange: number;
     aggressionFactor: number;
     bluffFrequency: number;
@@ -44,18 +55,57 @@ export const AI_NAMES: string[] = [
     "Fox",
 ];
 
+/**
+ * Personality deviation parameters.
+ *
+ * | Personality    | Range adj | Aggression      | Bluff freq | Passivity |
+ * |----------------|-----------|-----------------|------------|-----------|
+ * | TAG            | 95%       | Slightly above  | Low  (5%)  | Low  (5%)|
+ * | LAG            | 130%      | High            | High (20%) | Low  (3%)|
+ * | tight-passive  | 80%       | Very low        | Min  (3%)  | High(40%)|
+ * | loose-passive  | 150%      | Low             | Low  (8%)  | High(50%)|
+ *
+ * - looseness: probability of continuing when the engine says fold
+ * - aggression: probability of raising when the engine says call
+ * - bluffFreq: probability of betting/raising when the engine says check
+ * - passivity: probability of calling when the engine says raise
+ */
+interface PersonalityDeviation {
+    looseness: number;
+    aggression: number;
+    bluffFreq: number;
+    passivity: number;
+}
+
 const PERSONALITY_PROFILES: Record<AIPersonality, PersonalityProfile> = {
-    TAG: { preflopRange: 0.2, aggressionFactor: 0.7, bluffFrequency: 0.1 },
+    TAG: { preflopRange: 0.2, aggressionFactor: 0.7, bluffFrequency: 0.05 },
     LAG: { preflopRange: 0.4, aggressionFactor: 0.8, bluffFrequency: 0.2 },
     "tight-passive": {
         preflopRange: 0.15,
         aggressionFactor: 0.2,
-        bluffFrequency: 0.05,
+        bluffFrequency: 0.03,
     },
     "loose-passive": {
         preflopRange: 0.5,
         aggressionFactor: 0.3,
         bluffFrequency: 0.08,
+    },
+};
+
+const PERSONALITY_DEVIATIONS: Record<AIPersonality, PersonalityDeviation> = {
+    TAG: { looseness: 0.05, aggression: 0.15, bluffFreq: 0.05, passivity: 0.05 },
+    LAG: { looseness: 0.30, aggression: 0.35, bluffFreq: 0.20, passivity: 0.03 },
+    "tight-passive": {
+        looseness: 0.0,
+        aggression: 0.03,
+        bluffFreq: 0.03,
+        passivity: 0.40,
+    },
+    "loose-passive": {
+        looseness: 0.50,
+        aggression: 0.05,
+        bluffFreq: 0.08,
+        passivity: 0.50,
     },
 };
 
@@ -105,12 +155,10 @@ export function getPreflopHandStrength(holeCards: Card[]): number {
 
     if (isPair) {
         // Pairs: scale from ~0.40 (22) to 1.0 (AA)
-        // value range 2–14 → normalized 0–1
         return 0.4 + (high - 2) * (0.6 / 12);
     }
 
     // Base: average of high-card contributions
-    // high=14 → 1.0, high=2 → 0.0 (before suit/gap adjustments)
     let strength = ((high - 2) / 12) * 0.55 + ((low - 2) / 12) * 0.25;
 
     // Suited bonus
@@ -135,282 +183,192 @@ export function getPreflopHandStrength(holeCards: Card[]): number {
     return Math.min(1, Math.max(0, strength));
 }
 
-// ── AI Decision Entry Point ─────────────────────────────────────────
+// ── Context Builder ─────────────────────────────────────────────────
 
 /**
- * Determines the AI player's action given the current game state.
+ * Converts AIDecisionParams into a DecisionContext for the poker engine.
  *
- * The logic is intentionally beatable: it uses simple heuristics with
- * personality-driven thresholds and small random noise to produce
- * human-like (but imperfect) decisions.
+ * When dealerIndex/seatIndex/numPlayers are provided, computes the true
+ * position. Otherwise falls back to 'CO' as a reasonable default.
  */
-export function getAIDecision(params: AIDecisionParams): AIDecisionResult {
+function buildContext(params: AIDecisionParams): DecisionContext {
     const {
         player,
         communityCards,
         pot,
         currentBet,
-        minRaise,
         round,
         numActivePlayers,
+        dealerIndex,
+        seatIndex,
+        numPlayers,
+        actions,
+        bigBlind,
     } = params;
-    const personality = player.personality ?? "TAG";
-    const profile = getPersonalityAdjustment(personality);
 
-    // Preflop uses its own hand-strength model
-    if (round === "preflop") {
-        return makePreflopDecision(player, profile, currentBet, minRaise, pot);
+    // Compute position from seat indices if available, otherwise default to CO
+    let position: Position = "CO";
+    if (
+        dealerIndex !== undefined &&
+        seatIndex !== undefined &&
+        numPlayers !== undefined &&
+        numPlayers >= 2
+    ) {
+        position = getPosition(seatIndex, dealerIndex, numPlayers);
     }
 
-    // Postflop uses the full hand evaluator
-    return makePostflopDecision(
-        player,
-        communityCards,
-        profile,
-        currentBet,
-        minRaise,
-        pot,
-        numActivePlayers,
+    const toCall = Math.max(0, currentBet - player.currentBet);
+    const effectiveBB = bigBlind ?? 20; // sensible default
+    const actionHistory = actions ?? [];
+
+    // Determine if we're facing a raise by looking at action history.
+    // When no action history is available (backward compat), infer from toCall.
+    const currentRoundActions = actionHistory.filter((a) => a.round === round);
+    const raises = currentRoundActions.filter(
+        (a) => a.type === "raise" || a.type === "bet",
     );
-}
+    const facingRaise =
+        actionHistory.length > 0
+            ? raises.length > 0 && toCall > 0
+            : toCall > 0; // fallback: if there's something to call, assume facing bet
 
-// ── Preflop Decision ────────────────────────────────────────────────
+    // We don't have the raiser's seat index in PlayerAction,
+    // so we can't compute their position. Leave undefined.
+    const raiserPosition: Position | undefined = undefined;
 
-function makePreflopDecision(
-    player: Player,
-    profile: PersonalityProfile,
-    currentBet: number,
-    minRaise: number,
-    _pot: number,
-): AIDecisionResult {
-    const strength = getPreflopHandStrength(player.holeCards);
-    const toCall = currentBet - player.currentBet;
+    // Determine if first to act this round.
+    // When no action history, assume not first to act (conservative default).
+    const isFirstToAct =
+        actionHistory.length > 0 ? currentRoundActions.length === 0 : false;
 
-    // Threshold below which the hand is outside our range
-    const foldThreshold = 1 - profile.preflopRange;
-
-    if (strength < foldThreshold) {
-        // Marginal hand — usually fold, but 10% of the time call anyway
-        if (Math.random() < 0.1 && toCall > 0 && toCall <= player.stack) {
-            return { action: "call", amount: toCall };
-        }
-        // If there's nothing to call, just check
-        if (toCall <= 0) {
-            return { action: "check" };
-        }
-        return { action: "fold" };
-    }
-
-    // Hand is within our playable range
-
-    // Top quartile of range → consider raising
-    const topQuartileThreshold = 1 - profile.preflopRange * 0.25;
-    const isTopQuartile = strength >= topQuartileThreshold;
-
-    // ~5% random noise: occasionally deviate from the "correct" action
-    const randomNoise = Math.random();
-    if (randomNoise < 0.05) {
-        // Random deviation: call instead of raise, or vice versa
-        if (toCall > 0 && toCall <= player.stack) {
-            return { action: "call", amount: toCall };
-        }
-        return { action: "check" };
-    }
-
-    if (isTopQuartile && Math.random() > 1 - profile.aggressionFactor) {
-        // Raise: 2.5x–3.5x the current bet (or minRaise if no bet yet)
-        const multiplier = 2.5 + Math.random();
-        const raiseBase = currentBet > 0 ? currentBet : minRaise;
-        let raiseAmount = Math.round(raiseBase * multiplier);
-        raiseAmount = Math.max(raiseAmount, minRaise);
-        raiseAmount = Math.min(raiseAmount, player.stack);
-
-        if (raiseAmount > toCall && raiseAmount <= player.stack) {
-            return { action: "raise", amount: raiseAmount };
-        }
-    }
-
-    // Default: call or check
-    if (toCall > 0 && toCall <= player.stack) {
-        return { action: "call", amount: toCall };
-    }
-    return { action: "check" };
-}
-
-// ── Postflop Decision ───────────────────────────────────────────────
-
-function makePostflopDecision(
-    player: Player,
-    communityCards: Card[],
-    profile: PersonalityProfile,
-    currentBet: number,
-    minRaise: number,
-    pot: number,
-    _numActivePlayers: number,
-): AIDecisionResult {
-    const evaluation = getBestHand(player.holeCards, communityCards);
-    const strength = evaluation.strength;
-    const toCall = currentBet - player.currentBet;
-
-    // ── No bet to face (can check) ──
-    if (toCall <= 0) {
-        return decideWhenCanCheck(
-            strength,
-            profile,
-            pot,
-            minRaise,
-            player.stack,
-        );
-    }
-
-    // ── Facing a bet ──
-    return decideWhenFacingBet(
-        strength,
-        profile,
+    return {
+        holeCards: player.holeCards,
+        communityCards,
+        position,
+        round,
         pot,
         toCall,
-        minRaise,
-        player.stack,
-    );
+        currentBet,
+        stack: player.stack,
+        bigBlind: effectiveBB,
+        numActivePlayers,
+        numPlayersInHand: numActivePlayers,
+        isFirstToAct,
+        facingRaise,
+        raiserPosition,
+        actionHistory,
+    };
 }
 
-// ── Check / Bet Decision ────────────────────────────────────────────
-
-function decideWhenCanCheck(
-    strength: number,
-    profile: PersonalityProfile,
-    pot: number,
-    minRaise: number,
-    stack: number,
-): AIDecisionResult {
-    const random = Math.random();
-
-    // Strong hand → bet most of the time (scaled by aggression)
-    if (strength > 0.6 && random < profile.aggressionFactor) {
-        const sizing = betSize(strength, profile, pot);
-        const amount = clampBet(sizing, minRaise, stack);
-        if (amount >= minRaise && amount <= stack) {
-            return { action: "bet", amount };
-        }
-    }
-
-    // Medium hand → occasionally bet
-    if (
-        strength > 0.3 &&
-        strength <= 0.6 &&
-        random < profile.aggressionFactor * 0.3
-    ) {
-        const sizing = betSize(strength, profile, pot);
-        const amount = clampBet(sizing, minRaise, stack);
-        if (amount >= minRaise && amount <= stack) {
-            return { action: "bet", amount };
-        }
-    }
-
-    // Weak hand → bluff occasionally
-    if (strength <= 0.3 && random < profile.bluffFrequency) {
-        const sizing = Math.round(pot * (0.5 + Math.random() * 0.25)); // 50-75% pot bluff
-        const amount = clampBet(sizing, minRaise, stack);
-        if (amount >= minRaise && amount <= stack) {
-            return { action: "bet", amount };
-        }
-    }
-
-    return { action: "check" };
-}
-
-// ── Call / Raise / Fold Decision ────────────────────────────────────
-
-function decideWhenFacingBet(
-    strength: number,
-    profile: PersonalityProfile,
-    pot: number,
-    toCall: number,
-    minRaise: number,
-    stack: number,
-): AIDecisionResult {
-    const random = Math.random();
-
-    // Pot odds: we need at least this much equity to profitably call
-    const potOdds = toCall / (pot + toCall);
-
-    // Strong hand → raise
-    if (strength > 0.7 && random < profile.aggressionFactor) {
-        const raiseMultiplier = 2 + Math.random(); // 2x–3x the bet
-        let raiseAmount = Math.round(toCall * raiseMultiplier);
-        raiseAmount = Math.max(raiseAmount, minRaise);
-        raiseAmount = Math.min(raiseAmount, stack);
-        if (raiseAmount > toCall && raiseAmount <= stack) {
-            return { action: "raise", amount: raiseAmount };
-        }
-        // Can't raise — just call
-        if (toCall <= stack) {
-            return { action: "call", amount: toCall };
-        }
-    }
-
-    // Medium hand → call if odds are right
-    if (strength > potOdds && toCall <= stack) {
-        // ~5% random noise: occasionally fold a marginal call (makes AI exploitable)
-        if (strength < 0.5 && random < 0.05) {
-            return { action: "fold" };
-        }
-        return { action: "call", amount: toCall };
-    }
-
-    // Weak hand facing a bet → usually fold
-    // But occasionally bluff-raise
-    if (random < profile.bluffFrequency) {
-        let raiseAmount = Math.round(toCall * (2 + Math.random()));
-        raiseAmount = Math.max(raiseAmount, minRaise);
-        raiseAmount = Math.min(raiseAmount, stack);
-        if (raiseAmount > toCall && raiseAmount <= stack) {
-            return { action: "raise", amount: raiseAmount };
-        }
-    }
-
-    // If we can't afford to call or it's unprofitable, fold
-    if (toCall > stack) {
-        return { action: "fold" };
-    }
-    return { action: "fold" };
-}
-
-// ── Bet Sizing Helper ───────────────────────────────────────────────
+// ── Personality Deviations ──────────────────────────────────────────
 
 /**
- * Calculates a bet size between 33% and 100% of the pot.
+ * Applies personality-based deviations to the optimal decision.
  *
- * Stronger hands bet bigger (value), aggressive personalities size up,
- * and random noise keeps it from being perfectly predictable.
+ * The engine gives us the "GTO-ish" optimal play; personality deviations
+ * make each AI archetype feel distinct:
+ * - Loose players continue with hands the engine says to fold
+ * - Aggressive players raise when the engine says call
+ * - Bluffers bet when the engine says check
+ * - Passive players call when the engine says raise
  */
-function betSize(
-    strength: number,
-    profile: PersonalityProfile,
-    pot: number,
-): number {
-    // Base sizing: 33%–100% of pot, scaled by hand strength
-    const minFraction = 0.33;
-    const maxFraction = 1.0;
-    const range = maxFraction - minFraction;
+function applyPersonalityDeviations(
+    optimal: DecisionResult,
+    personality: AIPersonality,
+    params: AIDecisionParams,
+): AIDecisionResult {
+    const dev = PERSONALITY_DEVIATIONS[personality];
+    const { player, minRaise, pot, currentBet } = params;
+    const toCall = Math.max(0, currentBet - player.currentBet);
 
-    // Stronger hands → larger bets, with aggression shift
-    const strengthFactor = Math.min(1, strength * 1.2); // slight upward bias
-    const aggressionShift = (profile.aggressionFactor - 0.5) * 0.2; // ±0.1 shift
-    const noise = (Math.random() - 0.5) * 0.1; // ±5% random noise
+    let action = optimal.optimalAction;
+    let amount = optimal.optimalAmount;
 
-    const fraction = Math.min(
-        maxFraction,
-        Math.max(
-            minFraction,
-            minFraction + range * strengthFactor + aggressionShift + noise,
-        ),
-    );
+    // ── Deviation 1: Looseness (fold → call) ────────────────────────
+    // Looser players sometimes continue with hands the engine says to fold
+    if (action === "fold" && Math.random() < dev.looseness) {
+        if (toCall > 0 && toCall <= player.stack) {
+            action = "call";
+            amount = toCall;
+        }
+    }
 
-    return Math.round(pot * fraction);
+    // ── Deviation 2: Aggression (call → raise) ──────────────────────
+    // More aggressive players sometimes raise when engine says call
+    if (action === "call" && Math.random() < dev.aggression) {
+        const raiseAmount = Math.min(
+            Math.max(minRaise, toCall * 2 + Math.round(pot * 0.5)),
+            player.stack,
+        );
+        if (raiseAmount > toCall && raiseAmount <= player.stack) {
+            action = "raise";
+            amount = raiseAmount;
+        }
+    }
+
+    // ── Deviation 3: Bluffing (check → bet) ─────────────────────────
+    // Some players bluff more when checked to
+    if (action === "check" && Math.random() < dev.bluffFreq) {
+        const bluffSize = Math.round(pot * (0.5 + Math.random() * 0.25));
+        const betAmount = Math.min(Math.max(minRaise, bluffSize), player.stack);
+        if (betAmount >= minRaise && betAmount <= player.stack) {
+            action = "bet";
+            amount = betAmount;
+        }
+    }
+
+    // ── Deviation 4: Passivity (raise → call) ───────────────────────
+    // Passive players sometimes call when engine says raise
+    if (action === "raise" && Math.random() < dev.passivity) {
+        if (toCall > 0 && toCall <= player.stack) {
+            action = "call";
+            amount = toCall;
+        } else if (toCall === 0) {
+            action = "check";
+            amount = undefined;
+        }
+    }
+
+    // ── Bet sizing noise (±15%) ─────────────────────────────────────
+    // Add personality-based noise to sizing to avoid being predictable
+    if (amount !== undefined && (action === "bet" || action === "raise")) {
+        const noise = 1 + (Math.random() - 0.5) * 0.3; // 0.85–1.15
+        amount = Math.round(amount * noise);
+        // Clamp: at least minRaise, at most stack
+        amount = Math.max(minRaise, amount);
+        amount = Math.min(player.stack, amount);
+        // For raises, must exceed toCall
+        if (action === "raise" && amount <= toCall) {
+            amount = Math.min(toCall + minRaise, player.stack);
+        }
+    }
+
+    // Ensure call amount is exactly toCall
+    if (action === "call") {
+        amount = Math.min(toCall, player.stack);
+    }
+
+    // Clean up: no amount for check/fold
+    if (action === "check" || action === "fold") {
+        amount = undefined;
+    }
+
+    return { action, amount };
 }
 
-/** Clamps a bet amount between a minimum and maximum. */
-function clampBet(amount: number, minBet: number, maxBet: number): number {
-    return Math.max(minBet, Math.min(maxBet, amount));
+// ── AI Decision Entry Point ─────────────────────────────────────────
+
+/**
+ * Determines the AI player's action given the current game state.
+ *
+ * Uses the poker decision engine for optimal play, then applies
+ * personality-based deviations to create distinct AI archetypes.
+ */
+export function getAIDecision(params: AIDecisionParams): AIDecisionResult {
+    const personality = params.player.personality ?? "TAG";
+
+    const ctx = buildContext(params);
+    const optimal = evaluateDecision(ctx);
+
+    return applyPersonalityDeviations(optimal, personality, params);
 }

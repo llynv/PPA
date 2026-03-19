@@ -126,6 +126,58 @@ function TimelineStep({ decision, round, isLast }: StepProps) {
                             %
                         </p>
                     </div>
+                    {/* Equity, Pot Odds, SPR */}
+                    {(decision.equity != null || decision.potOdds != null || decision.spr != null) && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                            {decision.equity != null && (
+                                <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 text-xs">
+                                    Equity: {(decision.equity * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {decision.potOdds != null && (
+                                <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 text-xs">
+                                    Pot Odds: {(decision.potOdds * 100).toFixed(1)}%
+                                </span>
+                            )}
+                            {decision.spr != null && (
+                                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs">
+                                    SPR: {decision.spr.toFixed(1)}
+                                </span>
+                            )}
+                        </div>
+                    )}
+                    {/* Draw info */}
+                    {decision.draws != null && decision.draws.totalOuts > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                            {decision.draws.flushDraw && (
+                                <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">
+                                    Flush draw
+                                </span>
+                            )}
+                            {decision.draws.oesD && (
+                                <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-xs">
+                                    OESD
+                                </span>
+                            )}
+                            {decision.draws.gutshot && (
+                                <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">
+                                    Gutshot
+                                </span>
+                            )}
+                            <span className="text-slate-500 text-xs">
+                                {decision.draws.totalOuts} outs ({(decision.draws.drawEquity * 100).toFixed(1)}%)
+                            </span>
+                        </div>
+                    )}
+                    {/* Board texture */}
+                    {decision.boardTexture != null && (
+                        <p className="text-slate-500 text-xs mt-1">
+                            Board: {decision.boardTexture.wetness}
+                            {decision.boardTexture.isMonotone && ", monotone"}
+                            {decision.boardTexture.isPaired && ", paired"}
+                            {decision.boardTexture.isRainbow && ", rainbow"}
+                        </p>
+                    )}
                     <p
                         className={`font-medium ${decision.evDiff <= 0 ? "text-emerald-400" : "text-red-400"}`}
                     >
@@ -263,6 +315,58 @@ function MobileStep({ round, decision, dotColor, isLast }: MobileStepProps) {
                                 %
                             </p>
                         </div>
+                        {/* Equity, Pot Odds, SPR */}
+                        {(decision.equity != null || decision.potOdds != null || decision.spr != null) && (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                                {decision.equity != null && (
+                                    <span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 text-xs">
+                                        Equity: {(decision.equity * 100).toFixed(1)}%
+                                    </span>
+                                )}
+                                {decision.potOdds != null && (
+                                    <span className="px-2 py-0.5 rounded bg-violet-500/20 text-violet-400 text-xs">
+                                        Pot Odds: {(decision.potOdds * 100).toFixed(1)}%
+                                    </span>
+                                )}
+                                {decision.spr != null && (
+                                    <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs">
+                                        SPR: {decision.spr.toFixed(1)}
+                                    </span>
+                                )}
+                            </div>
+                        )}
+                        {/* Draw info */}
+                        {decision.draws != null && decision.draws.totalOuts > 0 && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                {decision.draws.flushDraw && (
+                                    <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-xs">
+                                        Flush draw
+                                    </span>
+                                )}
+                                {decision.draws.oesD && (
+                                    <span className="px-1.5 py-0.5 rounded bg-teal-500/20 text-teal-400 text-xs">
+                                        OESD
+                                    </span>
+                                )}
+                                {decision.draws.gutshot && (
+                                    <span className="px-1.5 py-0.5 rounded bg-orange-500/20 text-orange-400 text-xs">
+                                        Gutshot
+                                    </span>
+                                )}
+                                <span className="text-slate-500 text-xs">
+                                    {decision.draws.totalOuts} outs ({(decision.draws.drawEquity * 100).toFixed(1)}%)
+                                </span>
+                            </div>
+                        )}
+                        {/* Board texture */}
+                        {decision.boardTexture != null && (
+                            <p className="text-slate-500 text-xs mt-1">
+                                Board: {decision.boardTexture.wetness}
+                                {decision.boardTexture.isMonotone && ", monotone"}
+                                {decision.boardTexture.isPaired && ", paired"}
+                                {decision.boardTexture.isRainbow && ", rainbow"}
+                            </p>
+                        )}
                         <p
                             className={`font-medium ${decision.evDiff <= 0 ? "text-emerald-400" : "text-red-400"}`}
                         >

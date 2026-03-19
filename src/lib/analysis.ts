@@ -4,13 +4,15 @@ import type {
     BettingRound,
     Card,
     Decision,
+    DecisionContext,
     HandHistory,
     HeroGrade,
     Mistake,
     PlayerAction,
-    Rank,
+    Position,
 } from "../types/poker";
-import { getBestHand } from "./evaluator";
+import { evaluateDecision } from "./poker-engine/decision";
+import { getPosition } from "./poker-engine/position";
 
 // ── Session Stats ───────────────────────────────────────────────────
 
@@ -27,57 +29,7 @@ export interface SessionStats {
 
 const BETTING_ROUNDS: BettingRound[] = ["preflop", "flop", "turn", "river"];
 
-const RANK_VALUES: Record<Rank, number> = {
-    "2": 2,
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "7": 7,
-    "8": 8,
-    "9": 9,
-    "10": 10,
-    J: 11,
-    Q: 12,
-    K: 13,
-    A: 14,
-};
-
-/**
- * Simplified preflop hand strength based on hole card ranks and suitedness.
- * Returns a normalized 0–1 value.
- */
-function getPreflopStrength(holeCards: Card[]): number {
-    if (holeCards.length < 2) return 0.3;
-
-    const v1 = RANK_VALUES[holeCards[0].rank];
-    const v2 = RANK_VALUES[holeCards[1].rank];
-    const high = Math.max(v1, v2);
-    const low = Math.min(v1, v2);
-    const isPair = v1 === v2;
-    const isSuited = holeCards[0].suit === holeCards[1].suit;
-
-    // Base strength from card values (normalized to 0–1 range)
-    let strength = (high + low) / 28; // max sum = 28 (A+A)
-
-    if (isPair) {
-        // Pairs get a significant boost
-        strength += 0.25;
-    }
-
-    if (isSuited) {
-        strength += 0.05;
-    }
-
-    // Connectedness bonus (close ranks)
-    const gap = high - low;
-    if (gap <= 2 && !isPair) {
-        strength += 0.03;
-    }
-
-    // Clamp to [0, 1]
-    return Math.min(1, Math.max(0, strength));
-}
+// ── State Reconstruction Helpers ────────────────────────────────────
 
 /**
  * Get the community cards visible at a given betting round.
@@ -100,193 +52,88 @@ function getCommunityCardsForRound(
 }
 
 /**
- * Calculate hand strength for a given round. Preflop uses a simplified
- * heuristic since we can't form a 5-card hand.
+ * Estimate the pot size at the point hero made their decision in a round.
+ * Sums all amounts from previous rounds + amounts in current round before hero's action.
  */
-function getHandStrength(
-    holeCards: Card[],
-    communityCards: Card[],
+function getPotAtDecision(
+    actions: PlayerAction[],
+    heroId: string,
     round: BettingRound,
 ): number {
-    const visible = getCommunityCardsForRound(communityCards, round);
+    let pot = 0;
+    for (const a of actions) {
+        const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
+        const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
 
-    if (round === "preflop" || visible.length < 3) {
-        return getPreflopStrength(holeCards);
-    }
-
-    const evaluation = getBestHand(holeCards, visible);
-    return evaluation.strength;
-}
-
-/**
- * Get a human-readable description of the hero's hand at this round.
- */
-function getHandDescription(
-    holeCards: Card[],
-    communityCards: Card[],
-    round: BettingRound,
-): string {
-    const visible = getCommunityCardsForRound(communityCards, round);
-
-    if (round === "preflop" || visible.length < 3) {
-        const r1 = holeCards[0]?.rank ?? "?";
-        const r2 = holeCards[1]?.rank ?? "?";
-        const suited =
-            holeCards.length >= 2 && holeCards[0].suit === holeCards[1].suit;
-        return `${r1}${r2}${suited ? "s" : "o"}`;
-    }
-
-    const evaluation = getBestHand(holeCards, visible);
-    return evaluation.description;
-}
-
-/**
- * Calculate pot odds: the ratio of amount to call vs total pot after calling.
- * Returns a value between 0 and 1. Returns 0 if no bet to call.
- */
-function calculatePotOdds(pot: number, amountToCall: number): number {
-    if (amountToCall <= 0) return 0;
-    return amountToCall / (pot + amountToCall);
-}
-
-/**
- * Determine the "optimal" action based on hand strength and pot odds.
- */
-function determineOptimalAction(
-    strength: number,
-    potOdds: number,
-    facingBet: boolean,
-): {
-    action: ActionType;
-    frequencies: { fold: number; call: number; raise: number };
-} {
-    let frequencies: { fold: number; call: number; raise: number };
-
-    if (strength > 0.7) {
-        // Strong hand — lean toward raising
-        frequencies = { fold: 0.05, call: 0.25, raise: 0.7 };
-    } else if (strength >= 0.35) {
-        // Medium hand — depends on pot odds
-        if (potOdds > 0 && strength > potOdds) {
-            // Pot odds justify continuing
-            frequencies = { fold: 0.15, call: 0.6, raise: 0.25 };
-        } else {
-            frequencies = { fold: 0.3, call: 0.55, raise: 0.15 };
+        if (actionRoundIndex < targetRoundIndex) {
+            // All contributions from previous rounds
+            pot += a.amount ?? 0;
+        } else if (a.round === round) {
+            // Within this round, sum up to (but not including) the hero's action
+            if (a.playerId === heroId) break;
+            pot += a.amount ?? 0;
         }
-    } else {
-        // Weak hand — lean toward folding
-        frequencies = { fold: 0.7, call: 0.25, raise: 0.05 };
     }
-
-    // Add noise of ±5% to each value
-    frequencies = addNoise(frequencies);
-
-    // Determine the single optimal action from the highest frequency
-    let action: ActionType;
-    if (
-        frequencies.raise >= frequencies.call &&
-        frequencies.raise >= frequencies.fold
-    ) {
-        action = facingBet ? "raise" : "bet";
-    } else if (frequencies.call >= frequencies.fold) {
-        action = facingBet ? "call" : "check";
-    } else {
-        action = facingBet ? "fold" : "check";
-    }
-
-    return { action, frequencies };
+    return pot;
 }
 
 /**
- * Add noise of ±5% to frequency values and re-normalize to sum = 1.
+ * Get the highest bet in the current round (before hero's action).
+ * Since action.amount is potDelta (additional chips), we track cumulative
+ * contributions per player in this round.
  */
-function addNoise(freq: { fold: number; call: number; raise: number }): {
-    fold: number;
-    call: number;
-    raise: number;
-} {
-    const noise = () => (Math.random() - 0.5) * 0.1; // ±5%
-
-    let fold = Math.max(0, freq.fold + noise());
-    let call = Math.max(0, freq.call + noise());
-    let raise = Math.max(0, freq.raise + noise());
-
-    // Re-normalize
-    const total = fold + call + raise;
-    if (total === 0) {
-        return { fold: 1 / 3, call: 1 / 3, raise: 1 / 3 };
-    }
-
-    fold /= total;
-    call /= total;
-    raise /= total;
-
-    return { fold, call, raise };
-}
-
-/**
- * Calculate the EV difference between the hero's action and the optimal action.
- * Returns a positive number representing BB lost.
- */
-function calculateEvDiff(
-    heroAction: ActionType,
-    optimalFrequencies: { fold: number; call: number; raise: number },
-    strength: number,
-    pot: number,
-    bigBlind: number,
+function getHighestBetInRound(
+    actions: PlayerAction[],
+    heroId: string,
+    round: BettingRound,
 ): number {
-    // Map hero action to frequency category
-    const heroCategory = mapActionToCategory(heroAction);
-    const optimalCategory = getHighestFrequencyCategory(optimalFrequencies);
+    let highestBet = 0;
+    const playerBets = new Map<string, number>();
 
-    if (heroCategory === optimalCategory) {
-        return 0;
+    for (const a of actions) {
+        if (a.round !== round) continue;
+        if (a.playerId === heroId) break;
+
+        const amount = a.amount ?? 0;
+        if (amount > 0) {
+            const current = playerBets.get(a.playerId) ?? 0;
+            playerBets.set(a.playerId, current + amount);
+            highestBet = Math.max(highestBet, current + amount);
+        }
     }
 
-    // EV loss is proportional to deviation from optimal and pot size
-    const heroFreq = optimalFrequencies[heroCategory];
-    const optimalFreq = optimalFrequencies[optimalCategory];
-    const freqDiff = optimalFreq - heroFreq;
-
-    // Scale by pot size relative to big blind, capped at reasonable values
-    const potInBB = pot / bigBlind;
-    const evLoss = freqDiff * potInBB * (1 - strength) * 0.5;
-
-    return Math.max(0, Math.round(evLoss * 100) / 100);
+    return highestBet;
 }
 
 /**
- * Map an ActionType to its frequency category.
+ * Get how much the hero has already bet in this round before their primary action.
+ * Since we analyze the hero's first action in each round, this is always 0 —
+ * the hero hasn't contributed to this round's betting yet.
  */
-function mapActionToCategory(action: ActionType): "fold" | "call" | "raise" {
-    switch (action) {
-        case "fold":
-            return "fold";
-        case "check":
-        case "call":
-            return "call";
-        case "bet":
-        case "raise":
-            return "raise";
-    }
+function getHeroBetInRound(
+    _actions: PlayerAction[],
+    _heroId: string,
+    _round: BettingRound,
+): number {
+    // Hero's first action in the round means they haven't bet yet in this round.
+    return 0;
 }
 
 /**
- * Get the frequency category with the highest value.
+ * Get the amount the hero needs to call in a given round.
  */
-function getHighestFrequencyCategory(freq: {
-    fold: number;
-    call: number;
-    raise: number;
-}): "fold" | "call" | "raise" {
-    if (freq.raise >= freq.call && freq.raise >= freq.fold) return "raise";
-    if (freq.call >= freq.fold) return "call";
-    return "fold";
+function getAmountToCall(
+    actions: PlayerAction[],
+    heroId: string,
+    round: BettingRound,
+): number {
+    const highestBet = getHighestBetInRound(actions, heroId, round);
+    const heroBet = getHeroBetInRound(actions, heroId, round);
+    return Math.max(0, highestBet - heroBet);
 }
 
 /**
- * Determine whether the hero was facing a bet on a given round.
- * Looks at actions prior to the hero's action in that round.
+ * Determine whether the hero was facing a bet/raise on a given round.
  */
 function isFacingBet(
     actions: PlayerAction[],
@@ -304,60 +151,116 @@ function isFacingBet(
 }
 
 /**
- * Estimate the pot size at the point a hero made their decision in a round.
+ * Check if hero is first to act in this round.
  */
-function getPotAtDecision(
+function isFirstToAct(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
-    initialPot: number,
-): number {
-    let pot = initialPot;
+): boolean {
     for (const a of actions) {
-        // Sum up all contributions from rounds before this one
-        if (BETTING_ROUNDS.indexOf(a.round) < BETTING_ROUNDS.indexOf(round)) {
-            pot += a.amount ?? 0;
-            continue;
-        }
-        // Within this round, sum up to (but not including) the hero's action
-        if (a.round === round) {
-            if (a.playerId === heroId) break;
-            pot += a.amount ?? 0;
-        }
+        if (a.round !== round) continue;
+        // First action in the round — is it the hero?
+        return a.playerId === heroId;
     }
-    return pot;
+    return true;
 }
 
 /**
- * Get the amount the hero needs to call in a given round.
+ * Count how many players are still active (not folded) at the point of hero's action.
  */
-function getAmountToCall(
+function getActivePlayers(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    totalPlayers: number,
 ): number {
-    let highestBet = 0;
-    let heroBet = 0;
+    const folded = new Set<string>();
+    const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
+
+    for (const a of actions) {
+        const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
+        if (actionRoundIndex > targetRoundIndex) break;
+        if (a.round === round && a.playerId === heroId) break;
+
+        if (a.type === "fold") {
+            folded.add(a.playerId);
+        }
+    }
+
+    return totalPlayers - folded.size;
+}
+
+/**
+ * Get the action history up to (but not including) hero's action in this round.
+ */
+function getActionHistory(
+    actions: PlayerAction[],
+    heroId: string,
+    round: BettingRound,
+): PlayerAction[] {
+    const history: PlayerAction[] = [];
+    const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
+
+    for (const a of actions) {
+        const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
+        if (actionRoundIndex > targetRoundIndex) break;
+        if (a.round === round && a.playerId === heroId) break;
+        history.push(a);
+    }
+
+    return history;
+}
+
+/**
+ * Find the position of the raiser in this round (if any).
+ */
+function getRaiserPosition(
+    actions: PlayerAction[],
+    heroId: string,
+    round: BettingRound,
+    players: { id: string; isDealer: boolean }[],
+    numPlayers: number,
+    dealerIndex: number,
+): Position | undefined {
+    let raiserPlayerId: string | undefined;
 
     for (const a of actions) {
         if (a.round !== round) continue;
         if (a.playerId === heroId) break;
-        const amount = a.amount ?? 0;
         if (a.type === "bet" || a.type === "raise") {
-            highestBet = Math.max(highestBet, amount);
+            raiserPlayerId = a.playerId;
         }
     }
 
-    // Check if hero has already put money in this round
-    for (const a of actions) {
-        if (a.round !== round) continue;
-        if (a.playerId === heroId) {
-            heroBet = a.amount ?? 0;
-            break;
-        }
-    }
+    if (!raiserPlayerId) return undefined;
 
-    return Math.max(0, highestBet - heroBet);
+    const raiserSeatIndex = players.findIndex((p) => p.id === raiserPlayerId);
+    if (raiserSeatIndex === -1) return undefined;
+
+    try {
+        return getPosition(raiserSeatIndex, dealerIndex, numPlayers);
+    } catch {
+        return "CO";
+    }
+}
+
+// ── Action Mapping ──────────────────────────────────────────────────
+
+/**
+ * Map an ActionType to its frequency category.
+ */
+function mapActionToCategory(action: ActionType): "fold" | "call" | "raise" {
+    switch (action) {
+        case "fold":
+            return "fold";
+        case "check":
+        case "call":
+            return "call";
+        case "bet":
+        case "raise":
+            return "raise";
+    }
 }
 
 // ── Grade Calculation ───────────────────────────────────────────────
@@ -384,53 +287,36 @@ function determineSeverity(evLoss: number): "minor" | "moderate" | "major" {
     return "major";
 }
 
-// ── Mistake Description ─────────────────────────────────────────────
+// ── Big Blind Estimation ────────────────────────────────────────────
 
-function generateMistakeDescription(
-    decision: Decision,
-    round: BettingRound,
-    handDescription: string,
-): string {
-    const heroCategory = mapActionToCategory(decision.heroAction);
-    const optimalCategory = mapActionToCategory(decision.optimalAction);
+/**
+ * Estimate the big blind from preflop actions.
+ * Falls back to 2 if unable to determine.
+ */
+function estimateBigBlind(actions: PlayerAction[]): number {
+    const preflopBets = actions
+        .filter(
+            (a) => a.round === "preflop" && a.amount != null && a.amount > 0,
+        )
+        .map((a) => a.amount!);
 
-    // Folding a strong hand
-    if (heroCategory === "fold" && optimalCategory === "raise") {
-        return `Folded ${handDescription} on the ${round}. This hand had significant equity and should have been continued.`;
+    if (preflopBets.length >= 2) {
+        preflopBets.sort((a, b) => a - b);
+        return preflopBets[1] ?? preflopBets[0] ?? 2;
     }
 
-    // Folding a medium hand that should have called
-    if (heroCategory === "fold" && optimalCategory === "call") {
-        return `Folded ${handDescription} on the ${round}. The pot odds justified a call here.`;
+    if (preflopBets.length === 1) {
+        return preflopBets[0];
     }
 
-    // Calling with a weak hand
-    if (heroCategory === "call" && optimalCategory === "fold") {
-        return `Called with a weak hand (${handDescription}) when pot odds did not justify continuing.`;
-    }
-
-    // Missing value — checking/calling with a strong hand
-    if (heroCategory === "call" && optimalCategory === "raise") {
-        return `Checked/called with a strong hand (${handDescription}). A raise would have extracted more value.`;
-    }
-
-    // Over-betting weak — raising with a weak hand
-    if (heroCategory === "raise" && optimalCategory === "fold") {
-        return `Raised with a weak holding on the ${round}. This spot called for a check or fold.`;
-    }
-
-    // Raising when a call was better
-    if (heroCategory === "raise" && optimalCategory === "call") {
-        return `Raised with ${handDescription} on the ${round}. A call would have been more appropriate here.`;
-    }
-
-    return `Suboptimal play with ${handDescription} on the ${round}.`;
+    return 2;
 }
 
 // ── Main Analysis Function ──────────────────────────────────────────
 
 /**
- * Analyzes a completed hand and generates GTO-inspired feedback.
+ * Analyzes a completed hand and generates deterministic GTO-based feedback
+ * using the decision engine.
  */
 export function analyzeHand(handHistory: HandHistory): AnalysisData {
     const hero = handHistory.players.find((p) => p.isHero);
@@ -448,9 +334,29 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
     const holeCards = hero.holeCards;
     const communityCards = handHistory.communityCards;
     const actions = handHistory.actions;
+    const players = handHistory.players;
+    const numPlayers = players.length;
 
-    // Use the recorded big blind, falling back to estimation for backward compatibility
     const bigBlind = handHistory.bigBlind ?? estimateBigBlind(actions);
+
+    // Find dealer index — fall back to 0 if no dealer marked
+    const dealerPlayer = players.find((p) => p.isDealer);
+    const dealerIndex = dealerPlayer
+        ? players.indexOf(dealerPlayer)
+        : -1;
+
+    // Determine hero's seat index and position
+    const heroSeatIndex = players.indexOf(hero);
+    let heroPosition: Position;
+    if (dealerIndex >= 0 && numPlayers >= 2 && numPlayers <= 9) {
+        try {
+            heroPosition = getPosition(heroSeatIndex, dealerIndex, numPlayers);
+        } catch {
+            heroPosition = "CO";
+        }
+    } else {
+        heroPosition = "CO";
+    }
 
     const decisions: Decision[] = [];
     const mistakes: Mistake[] = [];
@@ -466,50 +372,110 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
         // Take the hero's primary action in this round
         const heroAction = heroActions[0];
 
-        const strength = getHandStrength(holeCards, communityCards, round);
+        // Reconstruct game state at the point of hero's decision
+        const pot = getPotAtDecision(actions, hero.id, round);
+        const toCall = getAmountToCall(actions, hero.id, round);
+        const currentBet = getHighestBetInRound(actions, hero.id, round);
+        const visibleCards = getCommunityCardsForRound(communityCards, round);
         const facingBet = isFacingBet(actions, hero.id, round);
-        const pot = getPotAtDecision(actions, hero.id, round, 0);
-        const amountToCall = getAmountToCall(actions, hero.id, round);
-        const potOdds = calculatePotOdds(pot, amountToCall);
-
-        const { action: optimalAction, frequencies } = determineOptimalAction(
-            strength,
-            potOdds,
-            facingBet,
+        const firstToAct = isFirstToAct(actions, hero.id, round);
+        const numActivePlayers = getActivePlayers(
+            actions,
+            hero.id,
+            round,
+            numPlayers,
+        );
+        const actionHistory = getActionHistory(actions, hero.id, round);
+        const raiserPosition = getRaiserPosition(
+            actions,
+            hero.id,
+            round,
+            players,
+            numPlayers,
+            dealerIndex >= 0 ? dealerIndex : 0,
         );
 
-        const evDiff = calculateEvDiff(
-            heroAction.type,
-            frequencies,
-            strength,
-            Math.max(pot, bigBlind), // ensure minimum pot of 1 BB
+        // Build DecisionContext
+        const ctx: DecisionContext = {
+            holeCards,
+            communityCards: visibleCards,
+            position: heroPosition,
+            round,
+            pot: Math.max(pot, bigBlind), // ensure minimum pot of 1 BB
+            toCall,
+            currentBet,
+            stack: hero.stack,
             bigBlind,
+            numActivePlayers,
+            numPlayersInHand: numActivePlayers,
+            isFirstToAct: firstToAct,
+            facingRaise: facingBet,
+            raiserPosition,
+            actionHistory,
+        };
+
+        // Call the decision engine
+        const result = evaluateDecision(ctx);
+
+        // Calculate EV diff from evByAction
+        const heroCategory = mapActionToCategory(heroAction.type);
+        const heroEv = result.evByAction[heroCategory];
+
+        // Find the max EV (optimal) from evByAction
+        const maxEv = Math.max(
+            result.evByAction.fold,
+            result.evByAction.call,
+            result.evByAction.raise,
         );
+
+        // EV loss = EV(optimal action) - EV(hero's action), in BB
+        const evDiffRaw = maxEv - heroEv;
+        const evDiffInBB =
+            bigBlind > 0 ? evDiffRaw / bigBlind : evDiffRaw;
+        const evDiff = Math.max(0, Math.round(evDiffInBB * 100) / 100);
+
+        // Build bet size analysis when hero bet or raised
+        let betSizeAnalysis: Decision["betSizeAnalysis"];
+        if (
+            (heroAction.type === "bet" || heroAction.type === "raise") &&
+            heroAction.amount != null &&
+            heroAction.amount > 0 &&
+            result.optimalAmount != null &&
+            result.optimalAmount > 0
+        ) {
+            const heroSize = heroAction.amount;
+            const optimalSize = result.optimalAmount;
+            betSizeAnalysis = {
+                heroSize,
+                optimalSize,
+                sizingError: (heroSize - optimalSize) / optimalSize,
+            };
+        }
 
         const decision: Decision = {
             round,
             heroAction: heroAction.type,
             heroAmount: heroAction.amount,
-            optimalAction,
-            optimalAmount: heroAction.amount, // simplified: same sizing
-            optimalFrequencies: frequencies,
+            optimalAction: result.optimalAction,
+            optimalAmount: result.optimalAmount,
+            optimalFrequencies: result.frequencies,
             evDiff,
+            equity: result.equity,
+            potOdds: result.potOdds,
+            spr: result.spr,
+            draws: result.draws,
+            boardTexture: result.boardTexture,
+            reasoning: result.reasoning,
+            evByAction: result.evByAction,
+            betSizeAnalysis,
         };
 
         decisions.push(decision);
 
         // Generate mistake if hero deviated from optimal
         if (evDiff > 0) {
-            const handDesc = getHandDescription(
-                holeCards,
-                communityCards,
-                round,
-            );
-            const description = generateMistakeDescription(
-                decision,
-                round,
-                handDesc,
-            );
+            // Use engine reasoning for the description
+            const description = result.reasoning;
 
             mistakes.push({
                 round,
@@ -517,7 +483,7 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
                 severity: determineSeverity(evDiff),
                 evLoss: evDiff,
                 heroAction: heroAction.type,
-                optimalAction,
+                optimalAction: result.optimalAction,
             });
         }
     }
@@ -532,30 +498,6 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
         mistakes,
         handNumber: handHistory.handNumber,
     };
-}
-
-/**
- * Estimate the big blind from preflop actions.
- * Falls back to 2 if unable to determine.
- */
-function estimateBigBlind(actions: PlayerAction[]): number {
-    const preflopBets = actions
-        .filter(
-            (a) => a.round === "preflop" && a.amount != null && a.amount > 0,
-        )
-        .map((a) => a.amount!);
-
-    if (preflopBets.length >= 2) {
-        // The big blind is typically the second-smallest preflop forced bet
-        preflopBets.sort((a, b) => a - b);
-        return preflopBets[1] ?? preflopBets[0] ?? 2;
-    }
-
-    if (preflopBets.length === 1) {
-        return preflopBets[0];
-    }
-
-    return 2;
 }
 
 // ── Session Stats ───────────────────────────────────────────────────
