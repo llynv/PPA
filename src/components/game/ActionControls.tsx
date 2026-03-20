@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { useGameStore } from "../../store/gameStore";
+import { ActionButton } from "./ActionButton";
 
 export function ActionControls() {
     const players = useGameStore((s) => s.players);
@@ -27,7 +28,6 @@ export function ActionControls() {
     const heroStack = heroPlayer?.stack ?? 0;
 
     // The total amount hero would need to commit for a raise
-    // minRaise represents the minimum total bet (not additional chips)
     const minRaiseTotal = Math.max(
         currentMaxBet + settings.bigBlind,
         currentMaxBet * 2,
@@ -66,6 +66,13 @@ export function ActionControls() {
         void processAITurns();
     }, [currentMaxBet, raiseAmount, performAction, processAITurns]);
 
+    const handleAllIn = useCallback(() => {
+        const actionType = currentMaxBet > 0 ? "raise" : "bet";
+        performAction(actionType, maxRaiseTotal);
+        setShowRaiseSlider(false);
+        void processAITurns();
+    }, [currentMaxBet, maxRaiseTotal, performAction, processAITurns]);
+
     const setPresetRaise = useCallback(
         (fraction: number) => {
             const amount = Math.round(pot * fraction);
@@ -83,27 +90,23 @@ export function ActionControls() {
 
     const raiseLabel = currentMaxBet > 0 ? "Raise" : "Bet";
 
-    // Pot odds percentage for call button label
-    const callPotPct =
-        !canCheck && pot > 0
-            ? Math.round((currentBetToCall / pot) * 100)
-            : null;
-
     // Bet-to-pot ratio for raise slider
-    const raisePotRatio =
-        pot > 0 ? (raiseAmount / pot).toFixed(1) : null;
+    const raisePotRatio = pot > 0 ? (raiseAmount / pot).toFixed(1) : null;
+
+    // Default raise-to amount for the button label
+    const defaultRaiseTo = minRaiseTotal;
 
     return (
-        <div className="w-full bg-slate-900 border-t border-slate-700 p-3 pb-[env(safe-area-inset-bottom,12px)] flex-shrink-0">
+        <div className="w-full flex-shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
             {/* Raise slider panel */}
             {showRaiseSlider && (
-                <div className="mb-4 space-y-3">
+                <div className="bg-neutral-900/95 border-t border-neutral-700 p-4 space-y-3">
                     <div className="text-center">
                         <span className="text-white font-bold text-lg">
                             {raiseLabel}: ${raiseAmount.toLocaleString()}
                         </span>
                         {raisePotRatio && (
-                            <span className="text-slate-400 text-sm ml-2">
+                            <span className="text-neutral-400 text-sm ml-2">
                                 ({raisePotRatio}x pot)
                             </span>
                         )}
@@ -118,7 +121,7 @@ export function ActionControls() {
                         value={raiseAmount}
                         onChange={(e) => setRaiseAmount(Number(e.target.value))}
                         aria-label="Raise amount slider"
-                        className="w-full accent-amber-500 focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        className="w-full accent-blue-500 focus-visible:ring-2 focus-visible:ring-emerald-400"
                     />
 
                     {/* Preset buttons */}
@@ -149,49 +152,48 @@ export function ActionControls() {
                     <button
                         onClick={handleRaise}
                         aria-label={`Confirm ${raiseLabel} $${raiseAmount}`}
-                        className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-6 rounded-md font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         Confirm {raiseLabel} ${raiseAmount.toLocaleString()}
                     </button>
                 </div>
             )}
 
-            {/* Main action buttons */}
-            <div className="grid grid-cols-3 gap-3 md:flex md:justify-center md:gap-4">
-                <button
+            {/* Main action buttons bar */}
+            <div className="flex items-center justify-center gap-2 md:gap-3 px-4 py-3">
+                <ActionButton
+                    label="FOLD"
+                    dotColor="bg-red-500"
                     onClick={handleFold}
-                    aria-label="Fold your hand"
-                    className="bg-red-600 hover:bg-red-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
-                >
-                    Fold
-                </button>
+                    ariaLabel="Fold your hand"
+                />
 
-                <button
+                <ActionButton
+                    label={
+                        canCheck
+                            ? "CHECK"
+                            : `CALL ${currentBetToCall.toFixed(2)}`
+                    }
+                    dotColor="bg-yellow-500"
                     onClick={handleCheckCall}
-                    aria-label={canCheck ? "Check" : `Call $${currentBetToCall}`}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
-                >
-                    {canCheck ? (
-                        "Check"
-                    ) : (
-                        <span>
-                            Call ${currentBetToCall.toLocaleString()}
-                            {callPotPct != null && (
-                                <span className="text-emerald-200 text-xs font-normal ml-1">
-                                    ({callPotPct}%)
-                                </span>
-                            )}
-                        </span>
-                    )}
-                </button>
+                    ariaLabel={
+                        canCheck ? "Check" : `Call $${currentBetToCall}`
+                    }
+                />
 
-                <button
+                <ActionButton
+                    label={`RAISE TO ${defaultRaiseTo.toFixed(2)}`}
+                    dotColor="bg-blue-500"
                     onClick={openRaiseSlider}
-                    aria-label={`${raiseLabel} - open raise slider`}
-                    className="bg-amber-600 hover:bg-amber-500 text-white py-3 px-6 rounded-lg font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
-                >
-                    {raiseLabel}
-                </button>
+                    ariaLabel={`${raiseLabel} - open raise slider`}
+                />
+
+                <ActionButton
+                    label="ALL IN"
+                    dotColor="bg-cyan-600"
+                    onClick={handleAllIn}
+                    ariaLabel={`All in for $${maxRaiseTotal}`}
+                />
             </div>
         </div>
     );
@@ -210,7 +212,7 @@ function PresetButton({
         <button
             onClick={onClick}
             aria-label={`Set raise to ${label}`}
-            className="bg-slate-700 hover:bg-slate-600 text-slate-200 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
+            className="bg-neutral-700 hover:bg-neutral-600 text-neutral-200 px-3 py-1.5 rounded-md text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
         >
             {label}
         </button>

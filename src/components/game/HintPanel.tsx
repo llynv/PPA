@@ -149,7 +149,7 @@ export function HintPanel() {
 
             {/* Slide-up hint panel */}
             {isOpen && (
-                <div className="bg-slate-800 border-t border-blue-500/50 p-3 animate-in slide-in-from-bottom duration-200">
+                <div className="bg-neutral-900 border-t border-blue-500/50 p-3 animate-in slide-in-from-bottom duration-200">
                     <div className="flex items-start justify-between mb-2">
                         <h3 className="text-blue-400 font-bold text-sm">
                             GTO Hint

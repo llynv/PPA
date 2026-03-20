@@ -36,6 +36,20 @@ const SUIT_COLORS: Record<Suit, "red" | "black"> = {
     spades: "black",
 };
 
+/**
+ * 4-color deck mapping:
+ * - Spades = Black
+ * - Hearts = Red
+ * - Diamonds = Blue
+ * - Clubs = Green
+ */
+const SUIT_COLORS_4: Record<Suit, "black" | "red" | "blue" | "green"> = {
+    spades: "black",
+    hearts: "red",
+    diamonds: "blue",
+    clubs: "green",
+};
+
 /** Returns the Unicode symbol for a suit. */
 export function suitSymbol(suit: Suit): string {
     return SUIT_SYMBOLS[suit];
@@ -44,6 +58,11 @@ export function suitSymbol(suit: Suit): string {
 /** Returns 'red' for hearts/diamonds, 'black' for clubs/spades. */
 export function suitColor(suit: Suit): "red" | "black" {
     return SUIT_COLORS[suit];
+}
+
+/** Returns 4-color deck color: spades=black, hearts=red, diamonds=blue, clubs=green. */
+export function suitColor4(suit: Suit): "black" | "red" | "blue" | "green" {
+    return SUIT_COLORS_4[suit];
 }
 
 // ── Card helpers ────────────────────────────────────────────────────

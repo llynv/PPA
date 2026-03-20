@@ -1,5 +1,5 @@
 import type { Card, BettingRound } from "../../types/poker";
-import { suitSymbol, suitColor } from "../../lib/deck";
+import { PlayingCard } from "./PlayingCard";
 
 // ── Round Labels ────────────────────────────────────────────────────
 
@@ -11,27 +11,15 @@ const ROUND_LABELS: Record<BettingRound, string> = {
     showdown: "Showdown",
 };
 
-// ── Card Display (community size) ───────────────────────────────────
-
-function CommunityCardDisplay({ card }: { card: Card }) {
-    const color =
-        suitColor(card.suit) === "red" ? "text-red-500" : "text-slate-800";
-
-    return (
-        <div
-            aria-label={`${card.rank} of ${card.suit}`}
-            className={`w-10 h-14 md:w-14 md:h-20 bg-white rounded-lg border border-slate-300 flex flex-col items-center justify-center ${color}`}
-        >
-            <span className="text-sm md:text-base font-bold">{card.rank}</span>
-            <span className="text-base md:text-xl">{suitSymbol(card.suit)}</span>
-        </div>
-    );
-}
+// ── Empty Card Slot ─────────────────────────────────────────────────
 
 function EmptyCardSlot() {
     return (
-        <div aria-label="Empty card slot" className="w-10 h-14 md:w-14 md:h-20 rounded-lg border-2 border-dashed border-slate-600 flex items-center justify-center">
-            <span className="text-slate-600 text-xs">?</span>
+        <div
+            aria-label="Empty card slot"
+            className="w-10 h-14 md:w-12 md:h-[68px] rounded-md border border-dashed border-white/10 flex items-center justify-center"
+        >
+            <span className="text-white/20 text-xs">?</span>
         </div>
     );
 }
@@ -48,13 +36,13 @@ export function CommunityCards({ cards, round }: CommunityCardsProps) {
     const emptySlots = totalSlots - cards.length;
 
     return (
-        <div className="relative z-20 flex flex-col items-center gap-2">
-            <span className="text-slate-400 text-sm font-medium uppercase tracking-wide">
+        <div className="relative z-20 flex flex-col items-center gap-1.5">
+            <span className="text-white/40 text-xs font-medium uppercase tracking-widest">
                 {ROUND_LABELS[round]}
             </span>
-            <div className="flex justify-center items-center gap-1 md:gap-2">
+            <div className="flex justify-center items-center gap-1 md:gap-1.5">
                 {cards.map((card, i) => (
-                    <CommunityCardDisplay key={i} card={card} />
+                    <PlayingCard key={i} card={card} />
                 ))}
                 {Array.from({ length: emptySlots }, (_, i) => (
                     <EmptyCardSlot key={`empty-${i}`} />

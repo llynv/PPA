@@ -39,7 +39,7 @@ export function TableHUD() {
             {potOddsRatio != null && potOddsPct != null && (
                 <span
                     aria-label={`Pot odds: ${potOddsRatio.toFixed(1)} to 1, ${potOddsPct}%`}
-                    className="bg-slate-700/80 text-slate-200 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium"
+                    className="bg-black/40 text-white/80 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm"
                 >
                     Odds: {potOddsRatio.toFixed(1)}:1 ({potOddsPct}%)
                 </span>
@@ -47,7 +47,7 @@ export function TableHUD() {
             {spr != null && (
                 <span
                     aria-label={`Stack to pot ratio: ${spr.toFixed(1)}`}
-                    className="bg-slate-700/80 text-slate-200 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium"
+                    className="bg-black/40 text-white/80 text-[10px] md:text-xs px-2 py-0.5 rounded-full font-medium backdrop-blur-sm"
                 >
                     SPR: {spr.toFixed(1)}
                 </span>

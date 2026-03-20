@@ -15,9 +15,8 @@ export function ActionToast() {
             role="status"
             aria-live="polite"
             className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-30
-                       bg-slate-800/90 border border-slate-600 rounded-lg px-4 py-2
-                       text-white text-sm font-medium shadow-lg
-                       animate-in fade-in duration-200"
+                       bg-black/80 border border-neutral-600 rounded-lg px-4 py-2
+                       text-white text-sm font-medium shadow-lg backdrop-blur-sm"
         >
             {message}
         </div>

@@ -1,5 +1,5 @@
 import { useGameStore } from "../../store/gameStore";
-import { PlayerSeat, useIsLandscape } from "./PlayerSeat";
+import { PlayerProfile } from "./PlayerProfile";
 import { CommunityCards } from "./CommunityCards";
 import { PotDisplay } from "./PotDisplay";
 import { ActionControls } from "./ActionControls";
@@ -25,65 +25,308 @@ function ShowdownOverlay() {
     };
 
     return (
-        <div className="bg-slate-900 border-t border-slate-700 p-4 pb-[env(safe-area-inset-bottom,16px)] flex-shrink-0">
-            <div className="flex flex-col items-center gap-3">
-                <div className="text-center">
-                    <p className="text-emerald-400 font-bold text-lg">
-                        {winnerPlayer?.name ?? "Unknown"} wins!
-                    </p>
-                    {winnerHand && (
-                        <p className="text-slate-300 text-sm">{winnerHand}</p>
-                    )}
-                </div>
-                <div className="flex gap-3">
-                    <button
-                        onClick={viewAnalysis}
-                        className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
-                    >
-                        View Analysis
-                    </button>
-                    <button
-                        onClick={handleNextHand}
-                        className="bg-slate-700 hover:bg-slate-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
-                    >
-                        Next Hand
-                    </button>
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3">
+            <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-neutral-700 px-6 py-4">
+                <div className="flex flex-col items-center gap-3">
+                    <div className="text-center">
+                        <p className="text-emerald-400 font-bold text-lg">
+                            {winnerPlayer?.name ?? "Unknown"} wins!
+                        </p>
+                        {winnerHand && (
+                            <p className="text-neutral-300 text-sm">
+                                {winnerHand}
+                            </p>
+                        )}
+                    </div>
+                    <div className="flex gap-3">
+                        <button
+                            onClick={viewAnalysis}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        >
+                            View Analysis
+                        </button>
+                        <button
+                            onClick={handleNextHand}
+                            className="bg-neutral-700 hover:bg-neutral-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        >
+                            Next Hand
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     );
 }
 
-// ── Seat Positions ──────────────────────────────────────────────────
+// ── Seat Distribution ───────────────────────────────────────────────
 
-type SeatPosition =
-    | "top"
-    | "bottom"
-    | "left"
-    | "right"
-    | "top-left"
-    | "top-right";
+type TablePlacement = "top" | "bottom" | "top-left" | "top-right" | "left" | "right";
+
+interface SeatLayout {
+    placement: TablePlacement;
+    profilePlacement: "top" | "bottom";
+    style: React.CSSProperties;
+}
 
 /**
- * Returns seat positions arranged around the table.
+ * Maps player count to seat positions around the oval table.
  * Hero (index 0) is always at the bottom center.
- * Opponents are distributed around the remaining positions.
  */
-function getSeatPositions(playerCount: number): SeatPosition[] {
+function getSeatLayouts(playerCount: number): SeatLayout[] {
     switch (playerCount) {
         case 2:
-            return ["bottom", "top"];
+            return [
+                // Hero - bottom center
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                // Villain - top center
+                {
+                    placement: "top",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+            ];
         case 3:
-            return ["bottom", "top-left", "top-right"];
+            return [
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                {
+                    placement: "top-left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "8%",
+                        left: "22%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top-right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "8%",
+                        right: "22%",
+                        transform: "translateX(50%) translateY(-50%)",
+                    },
+                },
+            ];
         case 4:
-            return ["bottom", "top-left", "top", "top-right"];
+            return [
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                {
+                    placement: "left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        left: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        right: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+            ];
         case 5:
-            return ["bottom", "left", "top-left", "top-right", "right"];
+            return [
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                {
+                    placement: "left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        left: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top-left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "5%",
+                        left: "25%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top-right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "5%",
+                        right: "25%",
+                        transform: "translateX(50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        right: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+            ];
         case 6:
-            return ["bottom", "left", "top-left", "top", "top-right", "right"];
+            return [
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                {
+                    placement: "left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        left: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top-left",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "5%",
+                        left: "25%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "top-right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "5%",
+                        right: "25%",
+                        transform: "translateX(50%) translateY(-50%)",
+                    },
+                },
+                {
+                    placement: "right",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: "50%",
+                        right: "3%",
+                        transform: "translateY(-50%)",
+                    },
+                },
+            ];
         default:
-            return ["bottom", "top"];
+            return [
+                {
+                    placement: "bottom",
+                    profilePlacement: "bottom",
+                    style: {
+                        position: "absolute",
+                        bottom: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(50%)",
+                    },
+                },
+                {
+                    placement: "top",
+                    profilePlacement: "top",
+                    style: {
+                        position: "absolute",
+                        top: 0,
+                        left: "50%",
+                        transform: "translateX(-50%) translateY(-50%)",
+                    },
+                },
+            ];
     }
+}
+
+// ── Watermark ───────────────────────────────────────────────────────
+
+function TableWatermark() {
+    return (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+            <span className="text-white/[0.04] text-4xl md:text-6xl font-bold tracking-widest uppercase select-none">
+                GTOBase
+            </span>
+        </div>
+    );
 }
 
 // ── Component ───────────────────────────────────────────────────────
@@ -98,66 +341,91 @@ export function PokerTable() {
     const gamePhase = useGameStore((s) => s.gamePhase);
 
     const isShowdown = gamePhase === "showdown";
-    const seatPositions = getSeatPositions(players.length);
-    const isLandscape = useIsLandscape();
-
-    // Portrait: h-full fills viewport, overflow-visible for edge seats
-    // Landscape: original aspect-[16/10] scrollable layout
-    const tableClasses = isLandscape
-        ? `relative w-full max-w-3xl aspect-[16/10] max-h-full
-           bg-slate-950 border-4 border-slate-700
-           rounded-[60px] md:rounded-[100px]
-           flex flex-col items-center justify-center gap-3`
-        : `relative w-full max-w-3xl h-full
-           bg-slate-950 border-4 border-slate-700
-           rounded-[60px] md:rounded-[100px]
-           flex flex-col items-center justify-center gap-2 md:gap-3
-           overflow-visible`;
+    const seatLayouts = getSeatLayouts(players.length);
 
     return (
-        <div className="flex flex-col h-full">
-            {/* Table area */}
-            <div className="flex-1 flex items-center justify-center p-2 pb-6 md:p-4 md:pb-6 min-h-0 overflow-visible">
-                <div className={tableClasses}>
-                    {/* Player seats */}
-                    {players.map((player, i) => (
-                        <PlayerSeat
-                            key={player.id}
-                            player={player}
-                            isActive={!isShowdown && i === activePlayerIndex}
-                            isDealer={i === dealerIndex}
-                            position={seatPositions[i] ?? "top"}
-                            seatIndex={i}
-                            dealerIndex={dealerIndex}
-                            playerCount={players.length}
-                        />
-                    ))}
+        <div className="poker-table-bg flex flex-col h-full">
+            {/* Table area - centered on screen */}
+            <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-visible p-4 md:p-8">
+                {/* The Oval Poker Table */}
+                <div
+                    className="relative w-full max-w-[800px] aspect-[2/1]"
+                    style={{ maxHeight: "min(400px, 60vh)" }}
+                >
+                    {/* Table rail (outer border) */}
+                    <div
+                        className="absolute inset-0 rounded-[200px] shadow-2xl"
+                        style={{
+                            background: "linear-gradient(180deg, #404040 0%, #262626 50%, #1a1a1a 100%)",
+                            padding: "14px",
+                        }}
+                    >
+                        {/* Table felt (inner surface) */}
+                        <div
+                            className="w-full h-full rounded-[186px] relative overflow-hidden"
+                            style={{
+                                background: "radial-gradient(ellipse at center, #1a6b7a 0%, #13546a 40%, #0f4558 100%)",
+                            }}
+                        >
+                            {/* Felt border line (subtle inner edge) */}
+                            <div
+                                className="absolute inset-1 rounded-[180px] border border-white/[0.06] pointer-events-none"
+                            />
 
-                    {/* Community cards */}
-                    <CommunityCards
-                        cards={communityCards}
-                        round={currentRound}
-                    />
+                            <TableWatermark />
 
-                    {/* Pot */}
-                    <PotDisplay pot={pot} />
+                            {/* Center content: pot + community cards + HUD */}
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 md:gap-2 z-10">
+                                <PotDisplay pot={pot} />
+                                <CommunityCards
+                                    cards={communityCards}
+                                    round={currentRound}
+                                />
+                                <TableHUD />
+                            </div>
 
-                    {/* Table HUD: pot odds + SPR */}
-                    <TableHUD />
+                            {/* AI action toast */}
+                            <ActionToast />
+                        </div>
+                    </div>
 
-                    {/* AI action toast */}
-                    <ActionToast />
+                    {/* Player seats - positioned around the table edge */}
+                    {players.map((player, i) => {
+                        const layout = seatLayouts[i];
+                        if (!layout) return null;
+
+                        return (
+                            <div
+                                key={player.id}
+                                style={layout.style}
+                                className={`z-${player.isHero ? "[12]" : "10"} ${isShowdown ? "" : i === activePlayerIndex ? "z-[15]" : ""}`}
+                            >
+                                <PlayerProfile
+                                    player={player}
+                                    isActive={
+                                        !isShowdown && i === activePlayerIndex
+                                    }
+                                    isDealer={i === dealerIndex}
+                                    seatIndex={i}
+                                    dealerIndex={dealerIndex}
+                                    playerCount={players.length}
+                                    placement={layout.profilePlacement}
+                                />
+                            </div>
+                        );
+                    })}
+
+                    {/* Showdown overlay */}
+                    {isShowdown && <ShowdownOverlay />}
                 </div>
             </div>
 
-            {/* Hint panel + Action controls or showdown overlay */}
-            {isShowdown ? (
-                <ShowdownOverlay />
-            ) : (
-                <>
+            {/* Hint panel + Action controls at bottom */}
+            {!isShowdown && (
+                <div className="flex-shrink-0">
                     <HintPanel />
                     <ActionControls />
-                </>
+                </div>
             )}
         </div>
     );
