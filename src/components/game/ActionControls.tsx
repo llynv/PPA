@@ -100,7 +100,7 @@ export function ActionControls() {
         <div className="w-full flex-shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
             {/* Raise slider panel */}
             {showRaiseSlider && (
-                <div className="bg-neutral-900/95 border-t border-neutral-700 p-4 space-y-3">
+                <div className="bg-neutral-900/95 border-t border-neutral-700 p-3 md:p-4 space-y-2 md:space-y-3">
                     <div className="text-center">
                         <span className="text-white font-bold text-lg">
                             {raiseLabel}: ${raiseAmount.toLocaleString()}
@@ -152,7 +152,7 @@ export function ActionControls() {
                     <button
                         onClick={handleRaise}
                         aria-label={`Confirm ${raiseLabel} $${raiseAmount}`}
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-3 px-6 rounded-md font-bold text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
+                        className="w-full bg-blue-600 hover:bg-blue-500 text-white py-2.5 px-4 md:py-3 md:px-6 rounded-md font-bold text-base md:text-lg transition-colors min-h-[48px] focus-visible:ring-2 focus-visible:ring-emerald-400"
                     >
                         Confirm {raiseLabel} ${raiseAmount.toLocaleString()}
                     </button>
@@ -160,7 +160,7 @@ export function ActionControls() {
             )}
 
             {/* Main action buttons bar */}
-            <div className="flex items-center justify-center gap-2 md:gap-3 px-4 py-3">
+            <div className="grid grid-cols-2 gap-2 md:flex md:flex-row md:justify-center md:gap-3 w-full max-w-[600px] mx-auto px-4 py-3">
                 <ActionButton
                     label="FOLD"
                     dotColor="bg-red-500"

@@ -24,8 +24,8 @@ const POSITION_TAG_COLORS: Record<string, string> = {
 function BetChip({ amount }: { amount: number }) {
     return (
         <div className="flex items-center gap-1">
-            <div className="w-6 h-6 rounded-full bg-neutral-800 border-2 border-neutral-600 flex items-center justify-center shadow-md">
-                <div className="w-4 h-4 rounded-full border border-neutral-500 bg-neutral-700" />
+            <div className="w-5 h-5 md:w-6 md:h-6 rounded-full bg-neutral-800 border-2 border-neutral-600 flex items-center justify-center shadow-md">
+                <div className="w-3 h-3 md:w-4 md:h-4 rounded-full border border-neutral-500 bg-neutral-700" />
             </div>
             <span className="text-white text-xs font-medium">
                 {amount.toFixed(2)}
@@ -148,7 +148,7 @@ export function PlayerProfile({
                 </div>
 
                 {/* Info box */}
-                <div className="bg-neutral-800/95 rounded-b-lg border border-neutral-700 border-t-0 px-3 py-1.5 min-w-[100px] md:min-w-[130px] relative -mt-0.5">
+                <div className="bg-neutral-800/95 rounded-b-lg border border-neutral-700 border-t-0 px-2 py-1 md:px-3 md:py-1.5 min-w-[80px] md:min-w-[130px] relative -mt-0.5">
                     {/* Position tag */}
                     <div className="absolute -top-2 -right-2 z-20">
                         <span
@@ -167,10 +167,10 @@ export function PlayerProfile({
 
                     {/* Name and stack row */}
                     <div className="flex items-center justify-between gap-2">
-                        <span className="text-white font-bold text-[11px] md:text-xs uppercase tracking-wider">
+                        <span className="text-white font-bold text-[10px] md:text-xs uppercase tracking-wider">
                             {player.name}
                         </span>
-                        <span className="text-white text-[11px] md:text-xs font-medium">
+                        <span className="text-white text-[10px] md:text-xs font-medium">
                             {player.stack.toFixed(2)}
                         </span>
                     </div>
