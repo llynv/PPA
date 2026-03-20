@@ -17,7 +17,7 @@ function EmptyCardSlot() {
     return (
         <div
             aria-label="Empty card slot"
-            className="w-8 h-12 md:w-12 md:h-[68px] rounded-md border border-dashed border-white/10 flex items-center justify-center"
+            className="w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 rounded-md border border-dashed border-white/10 flex items-center justify-center"
         >
             <span className="text-white/20 text-xs">?</span>
         </div>
@@ -36,8 +36,8 @@ export function CommunityCards({ cards, round }: CommunityCardsProps) {
     const emptySlots = totalSlots - cards.length;
 
     return (
-        <div className="relative z-20 flex flex-col items-center gap-1.5">
-            <span className="text-white/40 text-xs font-medium uppercase tracking-widest">
+        <div className="relative z-20 flex flex-col items-center gap-1">
+            <span className="text-white/40 text-[10px] md:text-xs font-medium uppercase tracking-widest">
                 {ROUND_LABELS[round]}
             </span>
             <div className="flex justify-center items-center gap-0.5 md:gap-1.5">

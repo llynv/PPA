@@ -97,7 +97,7 @@ export function ActionControls() {
     const defaultRaiseTo = minRaiseTotal;
 
     return (
-        <div className="w-full flex-shrink-0 pb-[env(safe-area-inset-bottom,8px)]">
+        <div className="w-full flex-shrink-0">
             {/* Raise slider panel */}
             {showRaiseSlider && (
                 <div className="bg-neutral-900/95 border-t border-neutral-700 p-3 md:p-4 space-y-2 md:space-y-3">

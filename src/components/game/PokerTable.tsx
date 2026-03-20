@@ -76,7 +76,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
     switch (playerCount) {
         case 2:
             return [
-                // Hero - bottom center
+                // Hero - bottom center, anchored to table edge
                 {
                     placement: "bottom",
                     profilePlacement: "bottom",
@@ -84,10 +84,10 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
-                // Villain - top center
+                // Villain - top center, anchored to table edge
                 {
                     placement: "top",
                     profilePlacement: "top",
@@ -108,7 +108,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
                 {
@@ -141,7 +141,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
                 {
@@ -150,8 +150,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        left: "3%",
-                        transform: "translateY(-50%)",
+                        left: "5%",
+                        transform: "translateX(-50%) translateY(-50%)",
                     },
                 },
                 {
@@ -170,8 +170,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        right: "3%",
-                        transform: "translateY(-50%)",
+                        right: "5%",
+                        transform: "translateX(50%) translateY(-50%)",
                     },
                 },
             ];
@@ -184,7 +184,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
                 {
@@ -193,8 +193,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        left: "3%",
-                        transform: "translateY(-50%)",
+                        left: "5%",
+                        transform: "translateX(-50%) translateY(-50%)",
                     },
                 },
                 {
@@ -223,8 +223,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        right: "3%",
-                        transform: "translateY(-50%)",
+                        right: "5%",
+                        transform: "translateX(50%) translateY(-50%)",
                     },
                 },
             ];
@@ -237,7 +237,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
                 {
@@ -246,8 +246,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        left: "3%",
-                        transform: "translateY(-50%)",
+                        left: "5%",
+                        transform: "translateX(-50%) translateY(-50%)",
                     },
                 },
                 {
@@ -286,8 +286,8 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                     style: {
                         position: "absolute",
                         top: "50%",
-                        right: "3%",
-                        transform: "translateY(-50%)",
+                        right: "5%",
+                        transform: "translateX(50%) translateY(-50%)",
                     },
                 },
             ];
@@ -300,7 +300,7 @@ function getSeatLayouts(playerCount: number): SeatLayout[] {
                         position: "absolute",
                         bottom: 0,
                         left: "50%",
-                        transform: "translateX(-50%) translateY(50%)",
+                        transform: "translateX(-50%) translateY(30%)",
                     },
                 },
                 {
@@ -345,12 +345,12 @@ export function PokerTable() {
 
     return (
         <div className="poker-table-bg flex flex-col h-full">
-            {/* Table area - centered on screen */}
-            <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-visible p-4 md:p-8 pb-20 md:pb-8">
+            {/* ── Table Container ── fills all available space above action bar */}
+            <div className="flex-1 flex items-center justify-center min-h-0 relative overflow-visible p-4 md:p-12">
                 {/* The Oval Poker Table */}
                 <div
-                    className="relative w-full max-w-[800px] aspect-[2/1]"
-                    style={{ maxHeight: "min(400px, 60vh)" }}
+                    className="relative w-[85%] max-w-[700px] aspect-[2/1]"
+                    style={{ maxHeight: "min(350px, 50vh)" }}
                 >
                     {/* Table rail (outer border) */}
                     <div
@@ -374,7 +374,7 @@ export function PokerTable() {
                             <TableWatermark />
 
                             {/* Center content: pot + community cards + HUD */}
-                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 md:gap-2 z-10">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 md:gap-2 z-10">
                                 <PotDisplay pot={pot} />
                                 <CommunityCards
                                     cards={communityCards}
@@ -419,9 +419,9 @@ export function PokerTable() {
                 </div>
             </div>
 
-            {/* Hint panel + Action controls at bottom */}
+            {/* ── Action Bar Container ── dedicated bottom zone, never overlaps table */}
             {!isShowdown && (
-                <div className="flex-shrink-0">
+                <div className="shrink-0 w-full border-t border-neutral-800 bg-neutral-950 pb-[env(safe-area-inset-bottom,0px)]">
                     <HintPanel />
                     <ActionControls />
                 </div>

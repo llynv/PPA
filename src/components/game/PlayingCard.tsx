@@ -23,7 +23,7 @@ function FaceDownCard({ className = "" }: { className?: string }) {
     return (
         <div
             aria-label="Face-down card"
-            className={`w-8 h-12 md:w-12 md:h-[68px] rounded-md border border-neutral-600 flex items-center justify-center ${className}`}
+            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 rounded-md border border-neutral-600 flex items-center justify-center ${className}`}
             style={{
                 background: `repeating-linear-gradient(
                     135deg,
@@ -34,7 +34,7 @@ function FaceDownCard({ className = "" }: { className?: string }) {
                 )`,
             }}
         >
-            <div className="w-5 h-7 md:w-7 md:h-10 rounded-sm border border-red-700/40" />
+            <div className="w-5 h-7 sm:w-6 sm:h-8 md:w-7 md:h-10 rounded-sm border border-red-700/40" />
         </div>
     );
 }
@@ -62,12 +62,12 @@ export function PlayingCard({
     return (
         <div
             aria-label={`${card.rank} of ${card.suit}`}
-            className={`w-8 h-12 md:w-12 md:h-[68px] ${bgClass} rounded-md border border-white/20 flex flex-col items-center justify-center gap-0 shadow-md ${textClass} ${className}`}
+            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 ${bgClass} rounded-md border border-white/20 flex flex-col items-center justify-center gap-0 shadow-md ${textClass} ${className}`}
         >
-            <span className="text-xs md:text-base font-bold leading-tight">
+            <span className="text-xs sm:text-sm md:text-base font-bold leading-tight">
                 {card.rank}
             </span>
-            <span className="text-xs md:text-base leading-tight">
+            <span className="text-xs sm:text-sm md:text-base leading-tight">
                 {suitSymbol(card.suit)}
             </span>
         </div>
