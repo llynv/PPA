@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import type { Mistake, Decision } from "../../types/poker";
+import { DrillCTA } from "./DrillCTA";
 
 interface MistakeCardProps {
     mistake: Mistake;
@@ -133,10 +134,28 @@ export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
             {/* Expanded educational content */}
             {expanded && (
                 <div className="px-4 pb-4 space-y-4">
-                    {/* 1. Natural language narrative (large, readable) */}
-                    <p className="text-slate-200 text-sm leading-relaxed">
-                        {narrative}
-                    </p>
+                    {/* 1. Coaching explanation (structured) or fallback narrative */}
+                    {decision?.coaching ? (
+                        <div className="space-y-3">
+                            {/* What happened — neutral */}
+                            <div>
+                                <p className="text-slate-500 text-xs font-medium mb-0.5">What happened</p>
+                                <p className="text-slate-300 text-sm leading-relaxed">{decision.coaching.whatHappened}</p>
+                            </div>
+                            {/* Why it's a mistake — amber */}
+                            <div>
+                                <p className="text-amber-500 text-xs font-medium mb-0.5">Why it&apos;s a mistake</p>
+                                <p className="text-slate-200 text-sm leading-relaxed">{decision.coaching.whyMistake}</p>
+                            </div>
+                            {/* What to do instead — green */}
+                            <div>
+                                <p className="text-emerald-500 text-xs font-medium mb-0.5">What to do instead</p>
+                                <p className="text-slate-200 text-sm leading-relaxed">{decision.coaching.whatToDo}</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-slate-200 text-sm leading-relaxed">{narrative}</p>
+                    )}
 
                     {/* 2. EV cost callout */}
                     <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 rounded-lg border border-red-500/20">
@@ -300,6 +319,8 @@ export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
                             </div>
                         </div>
                     )}
+                    {/* 8. Drill CTA */}
+                    {mistake.type && <DrillCTA mistakeType={mistake.type} />}
                 </div>
             )}
         </div>
