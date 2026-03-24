@@ -3,6 +3,7 @@ import { DrillSetup } from '../components/drill/DrillSetup';
 import { SpotBoard } from '../components/drill/SpotBoard';
 import { DrillActionControls } from '../components/drill/DrillActionControls';
 import { DrillFeedback } from '../components/drill/DrillFeedback';
+import { DrillSummary } from '../components/drill/DrillSummary';
 
 export function DrillsPage() {
     const phase = useDrillStore((s) => s.phase);
@@ -45,17 +46,9 @@ export function DrillsPage() {
         return <DrillFeedback />;
     }
 
-    // Placeholder for summary phase (Task 7)
-    return (
-        <div className="flex-1 flex items-center justify-center p-4">
-            <div className="text-center">
-                <h1 className="text-2xl font-bold text-neutral-100 mb-2">
-                    Session Summary
-                </h1>
-                <p className="text-neutral-400">
-                    This phase is coming soon.
-                </p>
-            </div>
-        </div>
-    );
+    if (phase === 'summary' && session) {
+        return <DrillSummary />;
+    }
+
+    return null;
 }
