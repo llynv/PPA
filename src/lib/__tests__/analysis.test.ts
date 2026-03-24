@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyMistake } from "../analysis";
+import { classifyMistake, generateCoaching } from "../analysis";
 import type { Decision } from "../../types/poker";
 
 // Minimal decision factory for testing
@@ -258,5 +258,47 @@ describe("classifyMistake", () => {
         const result = classifyMistake(decision);
         expect(result.type).toBe("MISSED_VALUE_BET");
         expect(result.category).toBe("AGGRESSION");
+    });
+});
+
+describe("generateCoaching", () => {
+    it("generates structured coaching for OVERFOLD", () => {
+        const decision = makeDecision({
+            heroAction: "fold",
+            optimalAction: "call",
+            equity: 0.45,
+            potOdds: 0.25,
+            round: "flop",
+        });
+        const coaching = generateCoaching(decision, "OVERFOLD");
+        expect(coaching.whatHappened).toBeTruthy();
+        expect(coaching.whyMistake).toBeTruthy();
+        expect(coaching.whatToDo).toBeTruthy();
+        expect(coaching.concept).toBe("OVERFOLD");
+        expect(coaching.whatHappened).toContain("fold");
+        expect(coaching.whyMistake).toContain("equity");
+    });
+
+    it("generates structured coaching for MISSED_VALUE_BET", () => {
+        const decision = makeDecision({
+            heroAction: "call",
+            optimalAction: "raise",
+            equity: 0.72,
+            round: "river",
+        });
+        const coaching = generateCoaching(decision, "MISSED_VALUE_BET");
+        expect(coaching.concept).toBe("MISSED_VALUE_BET");
+        expect(coaching.whatToDo).toContain("raise");
+    });
+
+    it("generates coaching for BAD_SIZING_OVER with sizing details", () => {
+        const decision = makeDecision({
+            heroAction: "raise",
+            optimalAction: "raise",
+            betSizeAnalysis: { heroSize: 100, optimalSize: 50, sizingError: 1.0 },
+        });
+        const coaching = generateCoaching(decision, "BAD_SIZING_OVER");
+        expect(coaching.concept).toBe("BAD_SIZING_OVER");
+        expect(coaching.whyMistake).toBeTruthy();
     });
 });
