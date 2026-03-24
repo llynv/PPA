@@ -127,6 +127,7 @@ interface StoreState {
     // Analysis
     analysisData: AnalysisData | null;
     sessionAnalyses: AnalysisData[];
+    selectedAnalysisIndex: number; // -1 = latest
 
     // Training mode
     trainingMode: boolean;
@@ -143,6 +144,8 @@ interface StoreState {
     viewAnalysis: () => void;
     resetGame: () => void;
     setTrainingMode: (enabled: boolean) => void;
+    selectAnalysis: (index: number) => void;
+    getActiveAnalysis: () => AnalysisData | null;
 }
 
 // ── Store ────────────────────────────────────────────────────────────
@@ -165,6 +168,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
     handHistory: [],
     analysisData: null,
     sessionAnalyses: [],
+    selectedAnalysisIndex: -1,
     trainingMode: false,
     isProcessingAI: false,
     aiActionToast: null,
@@ -765,6 +769,18 @@ export const useGameStore = create<StoreState>((set, get) => ({
         });
     },
 
+    // ── selectAnalysis ──
+    selectAnalysis: (index: number) => set({ selectedAnalysisIndex: index }),
+
+    // ── getActiveAnalysis ──
+    getActiveAnalysis: () => {
+        const state = get();
+        if (state.selectedAnalysisIndex === -1) {
+            return state.analysisData;
+        }
+        return state.sessionAnalyses[state.selectedAnalysisIndex] ?? state.analysisData;
+    },
+
     // ── resetGame ──
     resetGame: () => {
         set({
@@ -784,6 +800,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
             handHistory: [],
             analysisData: null,
             sessionAnalyses: [],
+            selectedAnalysisIndex: -1,
             isProcessingAI: false,
             aiActionToast: null,
         });
