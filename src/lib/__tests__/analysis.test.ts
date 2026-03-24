@@ -206,4 +206,57 @@ describe("classifyMistake", () => {
         expect(result.type).toBe("BLUFF_WRONG_SPOT");
         expect(result.category).toBe("AGGRESSION");
     });
+
+    it("returns OVERFOLD (not MISSED_DRAW_PLAY) when hero folded with draws but optimal was call", () => {
+        const decision = makeDecision({
+            heroAction: "fold",
+            optimalAction: "call",
+            draws: {
+                flushDraw: true,
+                flushDrawOuts: 9,
+                oesD: false,
+                gutshot: false,
+                straightDrawOuts: 0,
+                backdoorFlush: false,
+                backdoorStraight: false,
+                totalOuts: 9,
+                drawEquity: 0.19,
+            },
+        });
+        const result = classifyMistake(decision);
+        expect(result.type).toBe("OVERFOLD");
+    });
+
+    it("returns BLUFF_WRONG_SPOT when hero raised but should have called with low equity", () => {
+        const decision = makeDecision({
+            heroAction: "raise",
+            optimalAction: "call",
+            equity: 0.20,
+            draws: {
+                flushDraw: false,
+                flushDrawOuts: 0,
+                oesD: false,
+                gutshot: false,
+                straightDrawOuts: 0,
+                backdoorFlush: false,
+                backdoorStraight: false,
+                totalOuts: 0,
+                drawEquity: 0,
+            },
+        });
+        const result = classifyMistake(decision);
+        expect(result.type).toBe("BLUFF_WRONG_SPOT");
+        expect(result.category).toBe("AGGRESSION");
+    });
+
+    it("returns MISSED_VALUE_BET when hero raised but should have called with high equity", () => {
+        const decision = makeDecision({
+            heroAction: "raise",
+            optimalAction: "call",
+            equity: 0.65,
+        });
+        const result = classifyMistake(decision);
+        expect(result.type).toBe("MISSED_VALUE_BET");
+        expect(result.category).toBe("AGGRESSION");
+    });
 });

@@ -280,76 +280,85 @@ const MISTAKE_CATEGORY_MAP: Record<MistakeType, MistakeCategory> = {
     MISSED_DRAW_PLAY: "EQUITY_REALIZATION",
 };
 
+// ── Classification Thresholds ───────────────────────────────────────
+
+const SIZING_OVER_THRESHOLD = 0.5;
+const SIZING_UNDER_THRESHOLD = -0.4;
+const MIN_DRAW_OUTS_SEMI_BLUFF = 8;
+const MIN_OUTS_DRAW_VALUE = 4;
+const STRONG_EQUITY_THRESHOLD = 0.60;
+const LOW_EQUITY_THRESHOLD = 0.30;
+
+// Note: MISSED_CBET classification requires preflop aggressor context
+// not available in the current Decision interface. Will be added when
+// preflop history tracking is implemented.
+
 export function classifyMistake(
     decision: Decision,
 ): { type: MistakeType; category: MistakeCategory } {
+    const type = classifyMistakeType(decision);
+    return { type, category: MISTAKE_CATEGORY_MAP[type] };
+}
+
+function classifyMistakeType(decision: Decision): MistakeType {
     const hero = mapActionToCategory(decision.heroAction);
     const optimal = mapActionToCategory(decision.optimalAction);
     const equity = decision.equity ?? 0;
     const potOdds = decision.potOdds ?? 0;
     const draws = decision.draws;
-    const boardTexture = decision.boardTexture;
     const sizing = decision.betSizeAnalysis;
 
     // 1. Sizing mistakes (same action type, wrong amount)
     if (hero === optimal && sizing) {
-        if (sizing.sizingError > 0.5) {
-            return { type: "BAD_SIZING_OVER", category: MISTAKE_CATEGORY_MAP.BAD_SIZING_OVER };
+        if (sizing.sizingError > SIZING_OVER_THRESHOLD) {
+            return "BAD_SIZING_OVER";
         }
-        if (sizing.sizingError < -0.4) {
-            return { type: "BAD_SIZING_UNDER", category: MISTAKE_CATEGORY_MAP.BAD_SIZING_UNDER };
+        if (sizing.sizingError < SIZING_UNDER_THRESHOLD) {
+            return "BAD_SIZING_UNDER";
         }
     }
 
     // 2. Hero folded, but should have continued
     if (hero === "fold") {
         // Check for missed draw play first
-        if (draws && draws.totalOuts >= 8 && optimal === "raise") {
-            return { type: "MISSED_DRAW_PLAY", category: MISTAKE_CATEGORY_MAP.MISSED_DRAW_PLAY };
+        if (draws && draws.totalOuts >= MIN_DRAW_OUTS_SEMI_BLUFF && optimal === "raise") {
+            return "MISSED_DRAW_PLAY";
         }
-        return { type: "OVERFOLD", category: MISTAKE_CATEGORY_MAP.OVERFOLD };
+        return "OVERFOLD";
     }
 
     // 3. Hero called, but should have folded
     if (hero === "call" && optimal === "fold") {
         // More specific: calling without odds
-        if (equity < potOdds && (!draws || draws.totalOuts < 4)) {
-            return { type: "CALLING_WITHOUT_ODDS", category: MISTAKE_CATEGORY_MAP.CALLING_WITHOUT_ODDS };
+        if (equity < potOdds && (!draws || draws.totalOuts < MIN_OUTS_DRAW_VALUE)) {
+            return "CALLING_WITHOUT_ODDS";
         }
-        return { type: "OVERCALL", category: MISTAKE_CATEGORY_MAP.OVERCALL };
+        return "OVERCALL";
     }
 
     // 4. Hero called, but should have raised
     if (hero === "call" && optimal === "raise") {
-        if (equity >= 0.60) {
-            return { type: "MISSED_VALUE_BET", category: MISTAKE_CATEGORY_MAP.MISSED_VALUE_BET };
+        if (equity >= STRONG_EQUITY_THRESHOLD) {
+            return "MISSED_VALUE_BET";
         }
-        return { type: "PASSIVE_WITH_EQUITY", category: MISTAKE_CATEGORY_MAP.PASSIVE_WITH_EQUITY };
+        return "PASSIVE_WITH_EQUITY";
     }
 
     // 5. Hero raised, but should have folded
     if (hero === "raise" && optimal === "fold") {
-        if (
-            equity < 0.30 &&
-            (!draws || draws.totalOuts < 4) &&
-            boardTexture &&
-            (boardTexture.wetness === "dry" || boardTexture.wetness === "semi-wet")
-        ) {
-            return { type: "BLUFF_WRONG_SPOT", category: MISTAKE_CATEGORY_MAP.BLUFF_WRONG_SPOT };
-        }
-        return { type: "BLUFF_WRONG_SPOT", category: MISTAKE_CATEGORY_MAP.BLUFF_WRONG_SPOT };
+        return "BLUFF_WRONG_SPOT";
     }
 
     // 6. Hero raised, but should have called (overaggression)
     if (hero === "raise" && optimal === "call") {
-        if (equity < 0.30 && (!draws || draws.totalOuts < 4)) {
-            return { type: "BLUFF_WRONG_SPOT", category: MISTAKE_CATEGORY_MAP.BLUFF_WRONG_SPOT };
+        if (equity < LOW_EQUITY_THRESHOLD && (!draws || draws.totalOuts < MIN_OUTS_DRAW_VALUE)) {
+            return "BLUFF_WRONG_SPOT";
         }
-        return { type: "MISSED_VALUE_BET", category: MISTAKE_CATEGORY_MAP.MISSED_VALUE_BET };
+        return "MISSED_VALUE_BET";
     }
 
-    // Fallback
-    return { type: "OVERFOLD", category: MISTAKE_CATEGORY_MAP.OVERFOLD };
+    // Fallback — should not be reached if called correctly
+    return "OVERFOLD";
 }
 
 // ── Grade Calculation ───────────────────────────────────────────────
