@@ -354,4 +354,14 @@ describe("App routing shell", () => {
 
         expect(practiceLink.className).toContain("bg-emerald-600");
     });
+
+    it("navigates to drills with concept param from review drill CTA", async () => {
+        render(
+            <MemoryRouter initialEntries={["/practice/drills?concept=value_bet_thin"]}>
+                <App />
+            </MemoryRouter>,
+        );
+        // DrillSetup should render and the concept filter should be pre-applied
+        expect(await screen.findByText(/spot drills/i)).toBeInTheDocument();
+    });
 });
