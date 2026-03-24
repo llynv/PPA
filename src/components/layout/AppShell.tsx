@@ -9,7 +9,7 @@ export function AppShell() {
     const handNumber = useGameStore((s) => s.handNumber);
     const resetGame = useGameStore((s) => s.resetGame);
 
-    const isPracticeRoute = location.pathname === "/practice";
+    const isPracticeRoute = location.pathname.startsWith("/practice");
     const isReviewRoute = location.pathname === "/review";
     const showSessionControls =
         (isPracticeRoute || isReviewRoute) && handNumber > 0;

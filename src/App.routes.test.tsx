@@ -215,11 +215,39 @@ describe("App routing shell", () => {
         expect(within(primaryNav).getByRole("link", { name: /^library$/i })).toBeInTheDocument();
     });
 
-    it("shows Practice settings by default when visiting practice", () => {
+    it("shows mode selector with Live Table and Spot Drills at /practice", () => {
         renderAt("/practice");
 
         expect(
+            screen.getByRole("heading", { name: /live table/i }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole("heading", { name: /spot drills/i }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByRole("link", { name: /live table/i }),
+        ).toHaveAttribute("href", "/practice/live");
+        expect(
+            screen.getByRole("link", { name: /spot drills/i }),
+        ).toHaveAttribute("href", "/practice/drills");
+    });
+
+    it("renders GameSettings at /practice/live in settings phase", () => {
+        renderAt("/practice/live");
+
+        expect(
             screen.getByRole("heading", { name: /game settings/i }),
+        ).toBeInTheDocument();
+    });
+
+    it("renders Spot Drills placeholder at /practice/drills", () => {
+        renderAt("/practice/drills");
+
+        expect(
+            screen.getByRole("heading", { name: /spot drills/i }),
+        ).toBeInTheDocument();
+        expect(
+            screen.getByText(/practice isolated decisions with instant gto feedback/i),
         ).toBeInTheDocument();
     });
 
@@ -234,10 +262,10 @@ describe("App routing shell", () => {
         ).toBeInTheDocument();
     });
 
-    it("keeps analysis out of Practice and sends study behavior to Review", () => {
+    it("redirects /practice/live to /review when game phase is analysis", () => {
         setAnalysisState();
 
-        renderAt("/practice");
+        renderAt("/practice/live");
 
         expect(
             screen.getByRole("heading", { name: /hand #2/i }),
@@ -245,9 +273,6 @@ describe("App routing shell", () => {
         expect(
             screen.getByTestId("location-probe"),
         ).toHaveTextContent("/review");
-        expect(
-            screen.queryByRole("heading", { name: /your hand is ready for review/i }),
-        ).not.toBeInTheDocument();
     });
 
     it("renders the analysis dashboard on Review when analysis exists", () => {
@@ -276,7 +301,7 @@ describe("App routing shell", () => {
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
     });
 
-    it("routes Back to Settings from Review back to practice settings", () => {
+    it("routes Back to Settings from Review back to practice mode selector", () => {
         setAnalysisState();
 
         renderAt("/review");
@@ -284,10 +309,10 @@ describe("App routing shell", () => {
         fireEvent.click(screen.getByRole("button", { name: /back to settings/i }));
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
-        expect(screen.getByRole("heading", { name: /game settings/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /live table/i })).toBeInTheDocument();
     });
 
-    it("routes header New Game from Review back to practice settings", () => {
+    it("routes header New Game from Review back to practice mode selector", () => {
         setAnalysisState();
 
         renderAt("/review");
@@ -295,7 +320,7 @@ describe("App routing shell", () => {
         fireEvent.click(screen.getAllByRole("button", { name: /new game/i })[0]);
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
-        expect(screen.getByRole("heading", { name: /game settings/i })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: /live table/i })).toBeInTheDocument();
     });
 
     it("lets showdown users enter review from the review route", () => {
@@ -310,5 +335,23 @@ describe("App routing shell", () => {
         fireEvent.click(screen.getByRole("button", { name: /open hand review/i }));
 
         expect(screen.getByRole("heading", { name: /hand #2/i })).toBeInTheDocument();
+    });
+
+    it("highlights Practice nav on /practice/live", () => {
+        renderAt("/practice/live");
+
+        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        const practiceLink = within(primaryNav).getByRole("link", { name: /^practice$/i });
+
+        expect(practiceLink.className).toContain("bg-emerald-600");
+    });
+
+    it("highlights Practice nav on /practice/drills", () => {
+        renderAt("/practice/drills");
+
+        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        const practiceLink = within(primaryNav).getByRole("link", { name: /^practice$/i });
+
+        expect(practiceLink.className).toContain("bg-emerald-600");
     });
 });
