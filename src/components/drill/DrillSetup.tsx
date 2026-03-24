@@ -42,7 +42,7 @@ export function DrillSetup() {
         setSelectedConcepts([conceptParam as DrillConcept]);
       }
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conceptParam]);
 
   const matchingCount = useMemo(() => {
     return DRILL_SPOTS.filter((s) => {

@@ -1,38 +1,14 @@
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../../store/gameStore";
 import { getSessionStats } from "../../lib/analysis";
+import { MISTAKE_TO_DRILL_CONCEPT, MISTAKE_TYPE_LABELS } from "../../lib/mistake-mappings";
+import type { MistakeType } from "../../types/poker";
 
 const CATEGORY_LABELS: Record<string, string> = {
     FREQUENCY: "Frequency mistakes",
     SIZING: "Sizing mistakes",
     AGGRESSION: "Aggression mistakes",
     EQUITY_REALIZATION: "Equity realization",
-};
-
-const TYPE_LABELS: Record<string, string> = {
-    OVERFOLD: "Overfolding",
-    OVERCALL: "Overcalling",
-    MISSED_VALUE_BET: "Missed value bets",
-    MISSED_CBET: "Missed c-bets",
-    BAD_SIZING_OVER: "Oversized bets",
-    BAD_SIZING_UNDER: "Undersized bets",
-    CALLING_WITHOUT_ODDS: "Calling without odds",
-    BLUFF_WRONG_SPOT: "Bad bluff spots",
-    MISSED_DRAW_PLAY: "Passive draw play",
-    PASSIVE_WITH_EQUITY: "Too passive with equity",
-};
-
-const MISTAKE_TO_CONCEPT: Record<string, string> = {
-    OVERFOLD: "cold_call",
-    OVERCALL: "bluff_catch",
-    MISSED_VALUE_BET: "value_bet_thin",
-    MISSED_CBET: "cbet_value",
-    BAD_SIZING_OVER: "cbet_value",
-    BAD_SIZING_UNDER: "cbet_value",
-    CALLING_WITHOUT_ODDS: "bluff_catch",
-    BLUFF_WRONG_SPOT: "river_bluff",
-    MISSED_DRAW_PLAY: "semi_bluff",
-    PASSIVE_WITH_EQUITY: "value_bet_thin",
 };
 
 export function SessionPatterns() {
@@ -58,7 +34,7 @@ export function SessionPatterns() {
         .reduce((sum, a) => sum + a.totalEvLoss, 0);
     const improving = lastThreeEvLoss < firstThreeEvLoss;
 
-    const drillConcept = MISTAKE_TO_CONCEPT[stats.weakestType.type] ?? "cbet_value";
+    const drillConcept = MISTAKE_TO_DRILL_CONCEPT[stats.weakestType.type as MistakeType] ?? "cbet_value";
 
     return (
         <div className="bg-slate-800 rounded-xl p-4 md:p-6 shadow-lg space-y-4">
@@ -99,7 +75,7 @@ export function SessionPatterns() {
             <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
                 <p className="text-amber-400 text-xs font-medium mb-0.5">Biggest leak</p>
                 <p className="text-slate-200 text-sm font-medium">
-                    {TYPE_LABELS[stats.weakestType.type] ?? stats.weakestType.type}
+                    {MISTAKE_TYPE_LABELS[stats.weakestType.type as MistakeType] ?? stats.weakestType.type}
                 </p>
                 <p className="text-slate-500 text-xs">
                     {stats.weakestType.count} mistakes · -{stats.weakestType.totalEvLoss.toFixed(1)} BB total
@@ -120,7 +96,7 @@ export function SessionPatterns() {
                 onClick={() => navigate(`/practice/drills?concept=${drillConcept}`)}
                 className="w-full py-2 rounded-lg bg-emerald-600/20 border border-emerald-600/30 text-emerald-400 text-sm font-medium hover:bg-emerald-600/30 transition-colors"
             >
-                Drill: {TYPE_LABELS[stats.weakestType.type] ?? "Practice"} &rarr;
+                Drill: {MISTAKE_TYPE_LABELS[stats.weakestType.type as MistakeType] ?? "Practice"} &rarr;
             </button>
         </div>
     );

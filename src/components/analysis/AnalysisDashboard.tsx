@@ -52,8 +52,10 @@ function CollapsibleSection({
 
 export function AnalysisDashboard() {
     const navigate = useNavigate();
-    const getActiveAnalysis = useGameStore((s) => s.getActiveAnalysis);
-    const analysisData = getActiveAnalysis();
+    const analysisData = useGameStore((s) => {
+        if (s.selectedAnalysisIndex === -1) return s.analysisData;
+        return s.sessionAnalyses[s.selectedAnalysisIndex] ?? s.analysisData;
+    });
     const sessionAnalyses = useGameStore((s) => s.sessionAnalyses);
     const startHand = useGameStore((s) => s.startHand);
     const processAITurns = useGameStore((s) => s.processAITurns);
