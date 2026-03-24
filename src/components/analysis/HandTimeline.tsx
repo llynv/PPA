@@ -237,10 +237,16 @@ function StreetSection({
                     </div>
                 </div>
 
-                {/* Natural language explanation */}
-                <p className="text-slate-300 text-xs leading-relaxed">
-                    {explanation}
-                </p>
+                {/* Natural language explanation or coaching */}
+                {decision.coaching ? (
+                    <div className="space-y-1.5 text-xs">
+                        <p className="text-slate-300 leading-relaxed">{decision.coaching.whatHappened}</p>
+                        <p className="text-amber-400/80 leading-relaxed">{decision.coaching.whyMistake}</p>
+                        <p className="text-emerald-400/80 leading-relaxed">{decision.coaching.whatToDo}</p>
+                    </div>
+                ) : (
+                    <p className="text-slate-300 text-xs leading-relaxed">{explanation}</p>
+                )}
 
                 {/* Expandable details */}
                 <button
