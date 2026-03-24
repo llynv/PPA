@@ -26,6 +26,9 @@ export interface SessionStats {
     averageEvLossPerHand: number;
     biggestMistake: Mistake | null;
     mistakesByRound: Record<BettingRound, number>;
+    mistakesByType: Record<string, { count: number; totalEvLoss: number }>;
+    mistakesByCategory: Record<string, { count: number; totalEvLoss: number }>;
+    weakestType: { type: string; count: number; totalEvLoss: number } | null;
 }
 
 // ── Constants ───────────────────────────────────────────────────────
@@ -801,6 +804,38 @@ export function getSessionStats(analyses: AnalysisData[]): SessionStats {
         mistakesByRound[mistake.round]++;
     }
 
+    // Count mistakes by type and category
+    const mistakesByType: Record<string, { count: number; totalEvLoss: number }> = {};
+    const mistakesByCategory: Record<string, { count: number; totalEvLoss: number }> = {};
+
+    for (const mistake of allMistakes) {
+        if (mistake.type) {
+            if (!mistakesByType[mistake.type]) {
+                mistakesByType[mistake.type] = { count: 0, totalEvLoss: 0 };
+            }
+            mistakesByType[mistake.type].count++;
+            mistakesByType[mistake.type].totalEvLoss += mistake.evLoss;
+        }
+        if (mistake.category) {
+            if (!mistakesByCategory[mistake.category]) {
+                mistakesByCategory[mistake.category] = { count: 0, totalEvLoss: 0 };
+            }
+            mistakesByCategory[mistake.category].count++;
+            mistakesByCategory[mistake.category].totalEvLoss += mistake.evLoss;
+        }
+    }
+
+    // Find weakest type
+    const typeEntries = Object.entries(mistakesByType);
+    const weakestType = typeEntries.length > 0
+        ? typeEntries.reduce((worst, [type, data]) =>
+            data.totalEvLoss > worst.totalEvLoss
+                ? { type, ...data }
+                : worst,
+            { type: typeEntries[0][0], ...typeEntries[0][1] },
+        )
+        : null;
+
     return {
         totalHands,
         averageGrade,
@@ -808,5 +843,8 @@ export function getSessionStats(analyses: AnalysisData[]): SessionStats {
         averageEvLossPerHand: Math.round(averageEvLossPerHand * 100) / 100,
         biggestMistake,
         mistakesByRound,
+        mistakesByType,
+        mistakesByCategory,
+        weakestType,
     };
 }
