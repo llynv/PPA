@@ -35,7 +35,7 @@ function shuffleArray<T>(arr: T[]): T[] {
   return shuffled;
 }
 
-function mapToFrequencyKey(action: ActionType): 'fold' | 'call' | 'raise' {
+export function mapToFrequencyKey(action: ActionType): 'fold' | 'call' | 'raise' {
   if (action === 'check') return 'call';
   if (action === 'bet') return 'raise';
   return action as 'fold' | 'call' | 'raise';

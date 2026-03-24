@@ -2,6 +2,7 @@ import { useDrillStore } from '../store/drillStore';
 import { DrillSetup } from '../components/drill/DrillSetup';
 import { SpotBoard } from '../components/drill/SpotBoard';
 import { DrillActionControls } from '../components/drill/DrillActionControls';
+import { DrillFeedback } from '../components/drill/DrillFeedback';
 
 export function DrillsPage() {
     const phase = useDrillStore((s) => s.phase);
@@ -40,13 +41,16 @@ export function DrillsPage() {
         );
     }
 
-    // Placeholder for feedback and summary phases (Tasks 6-7)
+    if (phase === 'feedback') {
+        return <DrillFeedback />;
+    }
+
+    // Placeholder for summary phase (Task 7)
     return (
         <div className="flex-1 flex items-center justify-center p-4">
             <div className="text-center">
                 <h1 className="text-2xl font-bold text-neutral-100 mb-2">
-                    {phase === 'feedback' && 'Feedback'}
-                    {phase === 'summary' && 'Session Summary'}
+                    Session Summary
                 </h1>
                 <p className="text-neutral-400">
                     This phase is coming soon.
