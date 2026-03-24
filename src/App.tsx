@@ -1,20 +1,23 @@
 import { AppShell } from "./components/layout/AppShell";
-import { GameSettings } from "./components/settings/GameSettings";
-import { PokerTable } from "./components/game/PokerTable";
-import { AnalysisDashboard } from "./components/analysis/AnalysisDashboard";
-import { useGameStore } from "./store/gameStore";
+import { Navigate, Route, Routes } from "react-router-dom";
+import { HomePage } from "./pages/HomePage";
+import { PracticePage } from "./pages/PracticePage";
+import { ReviewPage } from "./pages/ReviewPage";
+import { ProgressPage } from "./pages/ProgressPage";
+import { LibraryPage } from "./pages/LibraryPage";
 
 function App() {
-    const gamePhase = useGameStore((s) => s.gamePhase);
-
     return (
-        <AppShell>
-            {gamePhase === "settings" && <GameSettings />}
-            {(gamePhase === "playing" || gamePhase === "showdown") && (
-                <PokerTable />
-            )}
-            {gamePhase === "analysis" && <AnalysisDashboard />}
-        </AppShell>
+        <Routes>
+            <Route element={<AppShell />}>
+                <Route index element={<HomePage />} />
+                <Route path="practice" element={<PracticePage />} />
+                <Route path="review" element={<ReviewPage />} />
+                <Route path="progress" element={<ProgressPage />} />
+                <Route path="library" element={<LibraryPage />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Route>
+        </Routes>
     );
 }
 
