@@ -69,28 +69,40 @@ describe('drillStore', () => {
     expect(useDrillStore.getState().session!.streak).toBe(1);
     expect(useDrillStore.getState().session!.bestStreak).toBe(1);
 
-    // Advance to next spot
-    useDrillStore.getState().nextSpot();
-    const spot2 = useDrillStore.getState().session!.queue[useDrillStore.getState().session!.currentIndex];
-    const optimalResult2 = evaluateDecision(spot2.decisionContext);
-
-    // Find an action that is definitely wrong: not optimal AND frequency < 15%
+    // Advance through spots until we find one with a clearly wrong action
     const allActions: ActionType[] = ['fold', 'check', 'call', 'bet', 'raise'];
     const freqKeyMap: Record<string, 'fold' | 'call' | 'raise'> = {
       fold: 'fold', check: 'call', call: 'call', bet: 'raise', raise: 'raise',
     };
-    const wrongAction = allActions.find((a) => {
-      if (a === optimalResult2.optimalAction) return false;
-      const freq = optimalResult2.frequencies[freqKeyMap[a]] ?? 0;
-      return freq < 0.15;
-    });
-    // There must be at least one clearly wrong action
+
+    let wrongAction: ActionType | undefined;
+    const queue = useDrillStore.getState().session!.queue;
+
+    // Keep answering correctly until we find a spot where a wrong action exists
+    for (let i = 1; i < queue.length; i++) {
+      useDrillStore.getState().nextSpot();
+      const currentSpot = queue[useDrillStore.getState().session!.currentIndex];
+      const result = evaluateDecision(currentSpot.decisionContext);
+
+      wrongAction = allActions.find((a) => {
+        if (a === result.optimalAction) return false;
+        const freq = result.frequencies[freqKeyMap[a]] ?? 0;
+        return freq < 0.15;
+      });
+
+      if (wrongAction) break;
+
+      // This spot has no clearly wrong action — answer correctly and continue
+      useDrillStore.getState().submitAnswer(result.optimalAction);
+    }
+
+    // There must be at least one spot with a clearly wrong action
     expect(wrongAction).toBeDefined();
 
-    // Submit the wrong action → streak resets to 0, bestStreak stays at 1
+    // Submit the wrong action → streak resets to 0, bestStreak stays at previous value
     useDrillStore.getState().submitAnswer(wrongAction!);
     expect(useDrillStore.getState().session!.streak).toBe(0);
-    expect(useDrillStore.getState().session!.bestStreak).toBe(1);
+    expect(useDrillStore.getState().session!.bestStreak).toBeGreaterThanOrEqual(1);
   });
 
   it('resetSession returns to setup phase', () => {

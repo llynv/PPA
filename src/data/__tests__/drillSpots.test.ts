@@ -3,8 +3,8 @@ import { DRILL_SPOTS } from '../drillSpots';
 import { evaluateDecision } from '../../lib/poker-engine/decision';
 
 describe('drillSpots library', () => {
-  it('has at least 10 spots', () => {
-    expect(DRILL_SPOTS.length).toBeGreaterThanOrEqual(10);
+  it('has at least 30 spots', () => {
+    expect(DRILL_SPOTS.length).toBeGreaterThanOrEqual(30);
   });
 
   it('every spot has a unique id', () => {
