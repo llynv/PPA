@@ -287,26 +287,26 @@ describe("App routing shell", () => {
             screen.getByRole("button", { name: /next hand/i }),
         ).toBeInTheDocument();
         expect(
-            screen.getByRole("button", { name: /back to settings/i }),
+            screen.getByRole("button", { name: /back to practice/i }),
         ).toBeInTheDocument();
     });
 
-    it("routes Next Hand from Review back to practice", () => {
+    it("routes Next Hand from Review back to live table", () => {
         setAnalysisState();
 
         renderAt("/review");
 
         fireEvent.click(screen.getByRole("button", { name: /next hand/i }));
 
-        expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
+        expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice/live");
     });
 
-    it("routes Back to Settings from Review back to practice mode selector", () => {
+    it("routes Back to Practice from Review back to practice mode selector", () => {
         setAnalysisState();
 
         renderAt("/review");
 
-        fireEvent.click(screen.getByRole("button", { name: /back to settings/i }));
+        fireEvent.click(screen.getByRole("button", { name: /back to practice/i }));
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
         expect(screen.getByRole("heading", { name: /live table/i })).toBeInTheDocument();

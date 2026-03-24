@@ -77,10 +77,10 @@ export function AnalysisDashboard() {
     const handleNextHand = () => {
         startHand();
         void processAITurns();
-        navigate("/practice");
+        navigate("/practice/live");
     };
 
-    const handleBackToSettings = () => {
+    const handleBackToPractice = () => {
         resetGame();
         navigate("/practice");
     };
@@ -153,10 +153,10 @@ export function AnalysisDashboard() {
                     Next Hand
                 </button>
                 <button
-                    onClick={handleBackToSettings}
+                    onClick={handleBackToPractice}
                     className="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-200 py-3 rounded-lg font-bold text-lg transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
                 >
-                    Back to Settings
+                    Back to Practice
                 </button>
             </div>
         </div>
