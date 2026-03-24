@@ -1,5 +1,6 @@
-import { useState, useMemo } from 'react';
-import type { SpotCategory, DrillFilters } from '../../types/drill';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from "react-router-dom";
+import type { SpotCategory, DrillFilters, DrillConcept } from '../../types/drill';
 import { DRILL_SPOTS } from '../../data/drillSpots';
 import { useDrillStore } from '../../store/drillStore';
 
@@ -23,21 +24,40 @@ function toggleInArray<T>(arr: T[], item: T): T[] {
 export function DrillSetup() {
   const [selectedCategories, setSelectedCategories] = useState<SpotCategory[]>([]);
   const [selectedDifficulties, setSelectedDifficulties] = useState<(1 | 2 | 3)[]>([]);
+  const [selectedConcepts, setSelectedConcepts] = useState<DrillConcept[]>([]);
   const startSession = useDrillStore((s) => s.startSession);
+
+  const [searchParams] = useSearchParams();
+  const conceptParam = searchParams.get("concept");
+
+  useEffect(() => {
+    if (conceptParam) {
+      const validConcepts: string[] = [
+        "open_raise", "three_bet", "cold_call", "squeeze", "steal",
+        "cbet_value", "cbet_bluff", "check_raise", "float", "probe",
+        "barrel", "pot_control", "semi_bluff", "check_call",
+        "value_bet_thin", "bluff_catch", "river_raise", "river_bluff",
+      ];
+      if (validConcepts.includes(conceptParam)) {
+        setSelectedConcepts([conceptParam as DrillConcept]);
+      }
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const matchingCount = useMemo(() => {
     return DRILL_SPOTS.filter((s) => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(s.category)) return false;
       if (selectedDifficulties.length > 0 && !selectedDifficulties.includes(s.difficulty)) return false;
+      if (selectedConcepts.length > 0 && !selectedConcepts.includes(s.concept)) return false;
       return true;
     }).length;
-  }, [selectedCategories, selectedDifficulties]);
+  }, [selectedCategories, selectedDifficulties, selectedConcepts]);
 
   const handleStart = () => {
     const filters: DrillFilters = {
       categories: selectedCategories,
       difficulties: selectedDifficulties,
-      concepts: [],
+      concepts: selectedConcepts,
     };
     startSession(filters);
   };

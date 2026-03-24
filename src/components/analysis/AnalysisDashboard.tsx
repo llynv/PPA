@@ -8,6 +8,9 @@ import { HandReplay } from "./HandReplay";
 import { DecisionChart } from "./DecisionChart";
 import { MistakeCard } from "./MistakeCard";
 import { EVTracker } from "./EVTracker";
+import { HandHistoryChips } from "./HandHistoryChips";
+import { WinnerBanner } from "./WinnerBanner";
+import { SessionPatterns } from "./SessionPatterns";
 import type { Mistake } from "../../types/poker";
 
 const SEVERITY_ORDER: Record<Mistake["severity"], number> = {
@@ -49,7 +52,8 @@ function CollapsibleSection({
 
 export function AnalysisDashboard() {
     const navigate = useNavigate();
-    const analysisData = useGameStore((s) => s.analysisData);
+    const getActiveAnalysis = useGameStore((s) => s.getActiveAnalysis);
+    const analysisData = getActiveAnalysis();
     const sessionAnalyses = useGameStore((s) => s.sessionAnalyses);
     const startHand = useGameStore((s) => s.startHand);
     const processAITurns = useGameStore((s) => s.processAITurns);
@@ -87,12 +91,18 @@ export function AnalysisDashboard() {
 
     return (
         <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
+            {/* 0. Hand History Browser */}
+            <HandHistoryChips />
+
             {/* 1. Hand Replay (replaces abstract title) */}
             <HandReplay />
 
             <h2 className="text-lg font-bold text-slate-100 text-center">
                 Hand #{analysisData.handNumber}
             </h2>
+
+            {/* 1.5. Winner Banner */}
+            <WinnerBanner handNumber={analysisData.handNumber} />
 
             {/* 2. Hero Grade */}
             <div className="flex justify-center">
@@ -131,6 +141,9 @@ export function AnalysisDashboard() {
                     </div>
                 )}
             </div>
+
+            {/* 4.5. Session Patterns */}
+            <SessionPatterns />
 
             {/* 5. Advanced Stats (collapsible) */}
             <CollapsibleSection title="Advanced Stats — Optimal Frequencies">
