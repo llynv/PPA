@@ -105,6 +105,29 @@ export interface HandHistory {
     potWon: number;
 }
 
+// ── Mistake Classification ──────────────────────────────────────────
+
+export type MistakeType =
+    | "OVERFOLD"
+    | "OVERCALL"
+    | "MISSED_VALUE_BET"
+    | "MISSED_CBET"
+    | "BAD_SIZING_OVER"
+    | "BAD_SIZING_UNDER"
+    | "CALLING_WITHOUT_ODDS"
+    | "BLUFF_WRONG_SPOT"
+    | "MISSED_DRAW_PLAY"
+    | "PASSIVE_WITH_EQUITY";
+
+export type MistakeCategory = "FREQUENCY" | "SIZING" | "AGGRESSION" | "EQUITY_REALIZATION";
+
+export interface CoachingExplanation {
+    whatHappened: string;
+    whyMistake: string;
+    whatToDo: string;
+    concept: MistakeType;
+}
+
 // ── Analysis ────────────────────────────────────────────────────────
 
 export interface Decision {
@@ -135,6 +158,7 @@ export interface Decision {
     hintUsed?: boolean;
     heroIsAllIn?: boolean;
     heroEv?: number;
+    coaching?: CoachingExplanation | null;
 }
 
 export interface Mistake {
@@ -144,6 +168,8 @@ export interface Mistake {
     evLoss: number;
     heroAction: ActionType;
     optimalAction: ActionType;
+    type?: MistakeType;
+    category?: MistakeCategory;
 }
 
 export interface AnalysisData {
