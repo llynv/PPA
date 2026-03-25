@@ -3,7 +3,7 @@ import type { CurriculumTier } from "../types/curriculum";
 import type { DrillConcept } from "../types/drill";
 import { CURRICULUM } from "../data/curriculum";
 
-const PRACTICED_OR_ABOVE: Set<MasteryLevel> = new Set(["practiced", "solid", "mastered"]);
+export const PRACTICED_OR_ABOVE: Set<MasteryLevel> = new Set(["practiced", "solid", "mastered"]);
 
 export function isTierUnlocked(
     tier: CurriculumTier,
