@@ -364,4 +364,16 @@ describe("App routing shell", () => {
         // DrillSetup should render and the concept filter should be pre-applied
         expect(await screen.findByText(/spot drills/i)).toBeInTheDocument();
     });
+
+    it("shows Learn link in primary navigation", () => {
+        renderAt("/");
+        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        expect(within(primaryNav).getByRole("link", { name: /^learn$/i })).toBeInTheDocument();
+    });
+
+    it("renders Learning Path at /learn", () => {
+        renderAt("/learn");
+        // Should show some curriculum content
+        expect(screen.getByText(/foundations/i)).toBeInTheDocument();
+    });
 });
