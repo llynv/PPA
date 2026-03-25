@@ -1,5 +1,7 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useProgressStore } from "../store/progressStore";
+import { useOnboarding } from "../hooks/useOnboarding";
+import { WelcomeOverlay } from "../components/onboarding/WelcomeOverlay";
 
 function ProgressCard() {
     const totalHands = useProgressStore((s) => s.overallStats.totalHands);
@@ -36,8 +38,20 @@ function ProgressCard() {
 }
 
 export function HomePage() {
+    const navigate = useNavigate();
+    const { showOnboarding, dismissOnboarding } = useOnboarding();
+
     return (
         <div className="max-w-5xl mx-auto px-4 py-8 md:px-6 md:py-12 space-y-8">
+            {showOnboarding && (
+                <WelcomeOverlay
+                    onDismiss={dismissOnboarding}
+                    onStartLearning={() => {
+                        dismissOnboarding();
+                        navigate("/learn");
+                    }}
+                />
+            )}
             <section className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 md:p-8">
                 <p className="text-sm font-medium text-emerald-400 mb-3">
                     GTO Training
