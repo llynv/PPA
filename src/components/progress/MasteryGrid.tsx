@@ -97,7 +97,7 @@ export function MasteryGrid() {
                                         onClick={() =>
                                             navigate(`/practice/drills?concept=${mastery.concept}`)
                                         }
-                                        className="bg-slate-800 rounded-xl p-3 shadow-lg text-left hover:bg-slate-750 transition-colors cursor-pointer"
+                                        className="bg-slate-800 rounded-xl p-3 shadow-lg text-left hover:bg-slate-700 transition-colors cursor-pointer"
                                     >
                                         <p className="text-sm font-medium text-neutral-100 truncate">
                                             {getConceptLabel(mastery.concept)}
