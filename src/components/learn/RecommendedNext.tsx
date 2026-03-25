@@ -1,21 +1,21 @@
 import { Link } from "react-router-dom";
 import { CONCEPT_LABELS } from "../../lib/concept-labels";
-import type { DrillConcept } from "../../types/drill";
+import type { Recommendation } from "../../types/poker";
 
 interface RecommendedNextProps {
-    concept: DrillConcept | null;
+    recommendation: Recommendation;
 }
 
-export function RecommendedNext({ concept }: RecommendedNextProps) {
+export function RecommendedNext({ recommendation }: RecommendedNextProps) {
+    const { concept, narrative } = recommendation;
+
     if (concept === null) {
         return (
             <div className="bg-slate-800 rounded-xl p-4 md:p-6 shadow-lg text-center">
                 <p className="text-lg font-semibold text-emerald-400">
                     All concepts mastered!
                 </p>
-                <p className="text-sm text-slate-400 mt-1">
-                    You&apos;ve completed the entire curriculum. Keep practicing to stay sharp.
-                </p>
+                <p className="text-sm text-slate-400 mt-1">{narrative}</p>
             </div>
         );
     }
@@ -29,6 +29,7 @@ export function RecommendedNext({ concept }: RecommendedNextProps) {
                 <p className="text-lg font-semibold text-neutral-100 truncate">
                     {label}
                 </p>
+                <p className="text-sm text-slate-400 mt-1">{narrative}</p>
             </div>
             <Link
                 to={`/practice/drills?concept=${concept}`}
