@@ -206,7 +206,10 @@ function formatActionLabel(action: string, amount?: number, isAllIn?: boolean): 
 // ── Generate Enhanced Coaching (Mistake) ────────────────────────────
 
 export function generateEnhancedCoaching(ctx: CoachingContext): EnhancedCoaching {
-    const mistakeType = ctx.mistakeType!;
+    if (!ctx.mistakeType) {
+        throw new Error("generateEnhancedCoaching requires a non-null mistakeType — use generateCorrectPlayCoaching for correct plays");
+    }
+    const mistakeType = ctx.mistakeType;
     const depth = coachingDepthForMastery(ctx.mastery?.level);
 
     // whatHappened

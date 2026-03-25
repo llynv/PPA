@@ -79,12 +79,12 @@ describe("recommendNextConcept", () => {
         expect(recommendNextConcept({})).toBe("open_raise");
     });
 
-    it("returns next unseen concept in unlocked tier before reinforcing existing", () => {
+    it("prioritizes struggling (learning) concepts over unseen ones", () => {
         const mastery = buildMasteryRecord([
             { concept: "open_raise", overrides: { level: "learning", totalAttempts: 3, accuracy: 0.3, recentAccuracy: 0.2 } },
         ]);
-        // cold_call is unseen in unlocked Tier 1 → takes priority over reinforcing open_raise
-        expect(recommendNextConcept(mastery)).toBe("cold_call");
+        // open_raise is struggling (learning) → fix weakness before introducing new concepts
+        expect(recommendNextConcept(mastery)).toBe("open_raise");
     });
 
     it("returns learning concept with lowest recentAccuracy when no unseen remain in unlocked tiers", () => {
