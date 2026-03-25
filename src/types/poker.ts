@@ -206,7 +206,7 @@ export interface Decision {
     hintUsed?: boolean;
     heroIsAllIn?: boolean;
     heroEv?: number;
-    coaching?: CoachingExplanation | null;
+    coaching?: EnhancedCoaching | null;
 }
 
 export interface Mistake {

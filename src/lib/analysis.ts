@@ -5,10 +5,10 @@ import type {
     BoardTexture,
     Card,
     CoachingContext,
-    CoachingExplanation,
     Decision,
     DecisionContext,
     DrawInfo,
+    EnhancedCoaching,
     HandHistory,
     HeroGrade,
     Mistake,
@@ -399,7 +399,7 @@ const DEFAULT_DRAWS: DrawInfo = {
 export function generateCoaching(
     decision: Decision,
     mistakeType: MistakeType,
-): CoachingExplanation {
+): EnhancedCoaching {
     const ctx: CoachingContext = {
         decision,
         mistakeType,
@@ -408,13 +408,7 @@ export function generateCoaching(
         draws: decision.draws ?? DEFAULT_DRAWS,
         round: decision.round,
     };
-    const enhanced = generateEnhancedCoaching(ctx);
-    return {
-        whatHappened: enhanced.whatHappened,
-        whyMistake: enhanced.whyMistake ?? "",
-        whatToDo: enhanced.whatToDo,
-        concept: mistakeType,
-    };
+    return generateEnhancedCoaching(ctx);
 }
 
 // ── Grade Calculation ───────────────────────────────────────────────

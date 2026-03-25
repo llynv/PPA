@@ -143,15 +143,28 @@ export function MistakeCard({ mistake, index, decision }: MistakeCardProps) {
                                 <p className="text-slate-300 text-sm leading-relaxed">{decision.coaching.whatHappened}</p>
                             </div>
                             {/* Why it's a mistake — amber */}
-                            <div>
-                                <p className="text-amber-500 text-xs font-medium mb-0.5">Why it&apos;s a mistake</p>
-                                <p className="text-slate-200 text-sm leading-relaxed">{decision.coaching.whyMistake}</p>
-                            </div>
+                            {decision.coaching.whyMistake && (
+                                <div>
+                                    <p className="text-amber-500 text-xs font-medium mb-0.5">Why it&apos;s a mistake</p>
+                                    <p className="text-slate-200 text-sm leading-relaxed">{decision.coaching.whyMistake}</p>
+                                </div>
+                            )}
                             {/* What to do instead — green */}
                             <div>
                                 <p className="text-emerald-500 text-xs font-medium mb-0.5">What to do instead</p>
                                 <p className="text-slate-200 text-sm leading-relaxed">{decision.coaching.whatToDo}</p>
                             </div>
+                            {/* Tip */}
+                            {decision.coaching.tip && (
+                                <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg px-3 py-2">
+                                    <p className="text-sky-400 text-xs font-medium mb-0.5">Tip</p>
+                                    <p className="text-slate-200 text-xs leading-relaxed">{decision.coaching.tip}</p>
+                                </div>
+                            )}
+                            {/* Board narrative */}
+                            {decision.coaching.boardNarrative && (
+                                <p className="text-slate-500 text-xs italic leading-relaxed">{decision.coaching.boardNarrative}</p>
+                            )}
                         </div>
                     ) : (
                         <p className="text-slate-200 text-sm leading-relaxed">{narrative}</p>
