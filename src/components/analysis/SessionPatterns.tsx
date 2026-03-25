@@ -1,7 +1,10 @@
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../../store/gameStore";
 import { getSessionStats } from "../../lib/analysis";
-import { MISTAKE_TO_DRILL_CONCEPT, MISTAKE_TYPE_LABELS } from "../../lib/mistake-mappings";
+import { MISTAKE_TYPE_LABELS } from "../../lib/mistake-mappings";
+import { generateSessionDebrief } from "../../lib/coaching";
+import { useProgressStore } from "../../store/progressStore";
 import type { MistakeType } from "../../types/poker";
 
 const CATEGORY_LABELS: Record<string, string> = {
@@ -14,6 +17,13 @@ const CATEGORY_LABELS: Record<string, string> = {
 export function SessionPatterns() {
     const navigate = useNavigate();
     const sessionAnalyses = useGameStore((s) => s.sessionAnalyses);
+    const sessions = useProgressStore((s) => s.sessions);
+    const conceptMastery = useProgressStore((s) => s.conceptMastery);
+
+    const recentSessions = useMemo(
+        () => [...sessions].reverse().slice(0, 5),
+        [sessions],
+    );
 
     if (sessionAnalyses.length < 3) return null;
 
@@ -25,16 +35,10 @@ export function SessionPatterns() {
         (a, b) => b[1].totalEvLoss - a[1].totalEvLoss,
     );
 
-    // Improvement trend: compare last 3 hands' EV loss to first 3
-    const firstThreeEvLoss = sessionAnalyses
-        .slice(0, 3)
-        .reduce((sum, a) => sum + a.totalEvLoss, 0);
-    const lastThreeEvLoss = sessionAnalyses
-        .slice(-3)
-        .reduce((sum, a) => sum + a.totalEvLoss, 0);
-    const improving = lastThreeEvLoss < firstThreeEvLoss;
+    const latestAnalysis = sessionAnalyses[sessionAnalyses.length - 1];
+    const debrief = generateSessionDebrief(latestAnalysis, recentSessions, conceptMastery);
 
-    const drillConcept = MISTAKE_TO_DRILL_CONCEPT[stats.weakestType.type as MistakeType] ?? "cbet_value";
+    const drillConcept = debrief.suggestedDrill ?? "cbet_value";
 
     return (
         <div className="bg-slate-800 rounded-xl p-4 md:p-6 shadow-lg space-y-4">
@@ -44,6 +48,11 @@ export function SessionPatterns() {
                     ({stats.totalHands} hands)
                 </span>
             </h3>
+
+            {/* Debrief headline */}
+            <p className="text-slate-300 text-sm font-medium leading-relaxed">
+                {debrief.headline}
+            </p>
 
             {/* Mistake frequency by category */}
             {categoryEntries.length > 0 && (
@@ -82,13 +91,16 @@ export function SessionPatterns() {
                 </p>
             </div>
 
-            {/* Improvement trend */}
-            {sessionAnalyses.length >= 6 && (
-                <div className={`text-xs font-medium ${improving ? "text-emerald-400" : "text-amber-400"}`}>
-                    {improving
-                        ? "Improving — your recent hands show fewer mistakes"
-                        : "Steady — keep practicing to reduce mistakes"}
-                </div>
+            {/* Debrief details */}
+            {debrief.details.length > 0 && (
+                <ul className="space-y-1">
+                    {debrief.details.map((detail, i) => (
+                        <li key={i} className="text-xs text-slate-400 leading-relaxed flex gap-2">
+                            <span className="text-slate-600 shrink-0">•</span>
+                            <span>{detail}</span>
+                        </li>
+                    ))}
+                </ul>
             )}
 
             {/* Drill recommendation */}
