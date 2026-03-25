@@ -1,19 +1,52 @@
 import { Link } from "react-router-dom";
+import { useProgressStore } from "../store/progressStore";
+
+function ProgressCard() {
+    const totalHands = useProgressStore((s) => s.overallStats.totalHands);
+    const totalDrills = useProgressStore((s) => s.overallStats.totalDrills);
+    const currentStreak = useProgressStore((s) => s.overallStats.currentStreak);
+    const averageGrade = useProgressStore((s) => s.overallStats.averageGrade);
+
+    const hasData = totalHands + totalDrills > 0;
+
+    return (
+        <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
+            <h2 className="text-lg font-semibold text-white mb-2">Progress</h2>
+            {hasData ? (
+                <>
+                    <p className="text-sm text-neutral-400">
+                        {totalHands} hands &middot; {totalDrills} drills
+                    </p>
+                    {currentStreak > 0 && (
+                        <p className="text-xs text-emerald-400 mt-1">
+                            {currentStreak} streak
+                        </p>
+                    )}
+                    <p className="text-xs text-slate-500 mt-1">
+                        Avg grade: {averageGrade}
+                    </p>
+                </>
+            ) : (
+                <p className="text-sm text-neutral-400">
+                    Play hands or drills to start tracking your progress.
+                </p>
+            )}
+        </div>
+    );
+}
 
 export function HomePage() {
     return (
         <div className="max-w-5xl mx-auto px-4 py-8 md:px-6 md:py-12 space-y-8">
             <section className="rounded-3xl border border-neutral-800 bg-neutral-900 p-6 md:p-8">
                 <p className="text-sm font-medium text-emerald-400 mb-3">
-                    M1 foundation
+                    GTO Training
                 </p>
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-4">
                     Learning-first poker coach
                 </h1>
                 <p className="text-neutral-300 max-w-2xl leading-7">
-                    Practice hands, review decisions, and grow a durable study loop.
-                    This milestone establishes the product shell while keeping the
-                    existing hand engine intact.
+                    Practice hands, review decisions, drill your weak spots, and track your mastery over time.
                 </p>
 
                 <div className="flex flex-wrap gap-3 mt-6">
@@ -45,12 +78,7 @@ export function HomePage() {
                         Inspect analysis after a hand and keep feedback separate from live play.
                     </p>
                 </div>
-                <div className="rounded-2xl border border-neutral-800 bg-neutral-900 p-5">
-                    <h2 className="text-lg font-semibold text-white mb-2">Progress</h2>
-                    <p className="text-sm text-neutral-400">
-                        Session trends and study tracking arrive next; this placeholder keeps the shell honest.
-                    </p>
-                </div>
+                <ProgressCard />
             </section>
         </div>
     );
