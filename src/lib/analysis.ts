@@ -2,10 +2,13 @@ import type {
     ActionType,
     AnalysisData,
     BettingRound,
+    BoardTexture,
     Card,
+    CoachingContext,
     CoachingExplanation,
     Decision,
     DecisionContext,
+    DrawInfo,
     HandHistory,
     HeroGrade,
     Mistake,
@@ -16,6 +19,7 @@ import type {
 } from "../types/poker";
 import { evaluateDecision } from "./poker-engine/decision";
 import { getPosition } from "./poker-engine/position";
+import { generateEnhancedCoaching } from "./coaching";
 
 // ── Session Stats ───────────────────────────────────────────────────
 
@@ -365,90 +369,52 @@ function classifyMistakeType(decision: Decision): MistakeType {
     return "OVERFOLD";
 }
 
-// ── Action Label Formatting ─────────────────────────────────────────
-
-function formatActionLabel(action: ActionType, amount?: number, isAllIn?: boolean): string {
-    if (isAllIn && (action === "bet" || action === "raise" || action === "call")) {
-        return amount != null && amount > 0 ? `All-in $${amount}` : "All-in";
-    }
-    const label = action.charAt(0).toUpperCase() + action.slice(1);
-    if (amount != null && amount > 0) return `${label} $${amount}`;
-    return label;
-}
-
 // ── Coaching Explanation Generator ──────────────────────────────────
+
+const DEFAULT_BOARD_TEXTURE: BoardTexture = {
+    wetness: "dry",
+    isMonotone: false,
+    isTwoTone: false,
+    isRainbow: true,
+    isPaired: false,
+    isTrips: false,
+    highCardCount: 0,
+    connectedness: 0,
+    possibleStraights: 0,
+    possibleFlushes: false,
+};
+
+const DEFAULT_DRAWS: DrawInfo = {
+    flushDraw: false,
+    flushDrawOuts: 0,
+    oesD: false,
+    gutshot: false,
+    straightDrawOuts: 0,
+    backdoorFlush: false,
+    backdoorStraight: false,
+    totalOuts: 0,
+    drawEquity: 0,
+};
 
 export function generateCoaching(
     decision: Decision,
     mistakeType: MistakeType,
 ): CoachingExplanation {
-    const heroLabel = formatActionLabel(decision.heroAction, decision.heroAmount, decision.heroIsAllIn);
-    const optimalLabel = formatActionLabel(decision.optimalAction, decision.optimalAmount);
-    const equityPct = decision.equity != null ? `${Math.round(decision.equity * 100)}%` : "unknown";
-    const potOddsPct = decision.potOdds != null ? `${Math.round(decision.potOdds * 100)}%` : null;
-    const round = decision.round;
-
-    const whatHappened = `You chose to ${heroLabel.toLowerCase()} on the ${round}.`;
-
-    let whyMistake: string;
-    let whatToDo: string;
-
-    switch (mistakeType) {
-        case "OVERFOLD":
-            whyMistake = potOddsPct
-                ? `With ${equityPct} equity and ${potOddsPct} pot odds, you had more than enough equity to continue. Folding here gives up profitable situations.`
-                : `With ${equityPct} equity, folding surrenders expected value. The optimal play was to ${optimalLabel.toLowerCase()}.`;
-            whatToDo = `In this spot, ${optimalLabel.toLowerCase()} is +EV. Consider your equity relative to pot odds before folding — if your equity exceeds the pot odds, continuing is profitable.`;
-            break;
-        case "OVERCALL":
-            whyMistake = potOddsPct
-                ? `With only ${equityPct} equity facing ${potOddsPct} pot odds, you don't have enough equity to call profitably.`
-                : `With ${equityPct} equity, calling here is -EV. The pot isn't offering enough to justify continuing.`;
-            whatToDo = `Fold when your equity is below the pot odds and you don't have enough implied odds or draws to compensate.`;
-            break;
-        case "MISSED_VALUE_BET":
-            whyMistake = `With ${equityPct} equity, your hand is strong enough to raise for value. By just calling, you miss extracting chips from weaker hands that would pay off a raise.`;
-            whatToDo = `Look to raise for value when you have strong equity. Opponents with medium-strength hands will often call, adding to your expected value.`;
-            break;
-        case "MISSED_CBET":
-            whyMistake = `As the preflop aggressor, checking forfeits your range advantage. A continuation bet applies pressure and often takes down the pot immediately.`;
-            whatToDo = `Fire a c-bet on favorable board textures when you have the initiative. Even without a strong hand, your preflop raising range gives you credibility.`;
-            break;
-        case "BAD_SIZING_OVER":
-            whyMistake = decision.betSizeAnalysis
-                ? `Your bet of ${decision.betSizeAnalysis.heroSize.toFixed(0)} was ${Math.round(decision.betSizeAnalysis.sizingError * 100)}% larger than optimal (${decision.betSizeAnalysis.optimalSize.toFixed(0)}). Oversizing risks too much when called and folds out hands you want action from.`
-                : `Your bet was significantly larger than the optimal sizing. Oversizing polarizes your range unnecessarily.`;
-            whatToDo = `Size your bets relative to the pot and board texture. On drier boards, smaller bets work well; on wetter boards, size up to deny equity.`;
-            break;
-        case "BAD_SIZING_UNDER":
-            whyMistake = decision.betSizeAnalysis
-                ? `Your bet of ${decision.betSizeAnalysis.heroSize.toFixed(0)} was ${Math.abs(Math.round(decision.betSizeAnalysis.sizingError * 100))}% smaller than optimal (${decision.betSizeAnalysis.optimalSize.toFixed(0)}). Undersizing gives opponents a cheap price to draw out.`
-                : `Your bet was significantly smaller than optimal. Small bets give opponents too good a price to continue.`;
-            whatToDo = `Size up when the board is wet or when you're value betting. Giving opponents incorrect odds to call is how you maximize EV.`;
-            break;
-        case "CALLING_WITHOUT_ODDS":
-            whyMistake = potOddsPct
-                ? `With ${equityPct} equity and ${potOddsPct} pot odds, you're calling without the math on your side. Without significant draws, this is a losing play.`
-                : `With ${equityPct} equity and no meaningful draws, calling here bleeds chips over time.`;
-            whatToDo = `Only call when your equity (including draw outs and implied odds) exceeds the pot odds. When the math doesn't work, fold and save chips for better spots.`;
-            break;
-        case "BLUFF_WRONG_SPOT":
-            whyMistake = `With only ${equityPct} equity and no draws on a ${decision.boardTexture?.wetness ?? ""} board, raising here has very little fold equity and almost no backup plan if called.`;
-            whatToDo = `Pick better bluffing spots: boards that favor your perceived range, positions with more fold equity, or situations where you have backdoor draws as backup.`;
-            break;
-        case "MISSED_DRAW_PLAY":
-            whyMistake = decision.draws
-                ? `You have ${decision.draws.totalOuts} outs (${(decision.draws.drawEquity * 100).toFixed(0)}% draw equity). With a strong draw, playing aggressively builds the pot for when you hit and can win the pot immediately through fold equity.`
-                : `With a strong drawing hand, playing passively misses the opportunity to semi-bluff and build fold equity.`;
-            whatToDo = `With 8+ outs, consider semi-bluffing. Raising with a draw puts pressure on opponents and gives you two ways to win: they fold, or you hit your draw.`;
-            break;
-        case "PASSIVE_WITH_EQUITY":
-            whyMistake = `With ${equityPct} equity, just calling is too passive. You have a strong enough hand to raise, which builds the pot and pressures opponents with weaker holdings.`;
-            whatToDo = `When you have 55%+ equity, lean toward raising. Passive play with strong hands lets opponents see cheap cards and outdraw you.`;
-            break;
-    }
-
-    return { whatHappened, whyMistake, whatToDo, concept: mistakeType };
+    const ctx: CoachingContext = {
+        decision,
+        mistakeType,
+        mastery: undefined,
+        boardTexture: decision.boardTexture ?? DEFAULT_BOARD_TEXTURE,
+        draws: decision.draws ?? DEFAULT_DRAWS,
+        round: decision.round,
+    };
+    const enhanced = generateEnhancedCoaching(ctx);
+    return {
+        whatHappened: enhanced.whatHappened,
+        whyMistake: enhanced.whyMistake ?? "",
+        whatToDo: enhanced.whatToDo,
+        concept: mistakeType,
+    };
 }
 
 // ── Grade Calculation ───────────────────────────────────────────────
