@@ -5,6 +5,7 @@ import { DRILL_SPOTS } from "../../data/drillSpots";
 import { useDrillStore } from "../../store/drillStore";
 import { CURRICULUM } from "../../data/curriculum";
 import { CONCEPT_LABELS } from "../../lib/concept-labels";
+import { CONCEPT_TEACHINGS } from "../../data/conceptTeachings";
 
 const CATEGORIES: { label: string; value: SpotCategory }[] = [
   { label: "Preflop", value: "preflop" },
@@ -160,6 +161,13 @@ export function DrillSetup() {
             </div>
           ))}
         </div>
+
+        {/* Concept teaching summary */}
+        {selectedConcepts.length === 1 && CONCEPT_TEACHINGS[selectedConcepts[0]] && (
+            <p className="text-neutral-400 text-xs leading-relaxed mb-4 -mt-2">
+                {CONCEPT_TEACHINGS[selectedConcepts[0]].summary}
+            </p>
+        )}
 
         {/* Spot Count */}
         <p className="text-neutral-400 text-sm mb-4">
