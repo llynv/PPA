@@ -446,4 +446,89 @@ describe("progressStore", () => {
         expect(dist.practiced).toBe(0);
         expect(dist.mastered).toBe(0);
     });
+
+    // ── Test 12: overallStats streak tracking ─────────────────────
+
+    it("tracks currentStreak and bestStreak across drill attempts", () => {
+        const spot = mockDrillSpot({ concept: "cbet_value" });
+
+        // 3 correct → streak=3
+        for (let i = 0; i < 3; i++) {
+            useProgressStore.getState().recordDrillAttempt(
+                mockDrillResult({ isCorrect: true, evDelta: 0.1 }),
+                spot
+            );
+        }
+        let state = useProgressStore.getState();
+        expect(state.overallStats.currentStreak).toBe(3);
+        expect(state.overallStats.bestStreak).toBe(3);
+
+        // 1 incorrect → streak resets
+        useProgressStore.getState().recordDrillAttempt(
+            mockDrillResult({ isCorrect: false, evDelta: -0.5 }),
+            spot
+        );
+        state = useProgressStore.getState();
+        expect(state.overallStats.currentStreak).toBe(0);
+        // bestStreak retained
+        expect(state.overallStats.bestStreak).toBe(3);
+
+        // 1 more correct → streak=1, bestStreak still 3
+        useProgressStore.getState().recordDrillAttempt(
+            mockDrillResult({ isCorrect: true, evDelta: 0.1 }),
+            spot
+        );
+        state = useProgressStore.getState();
+        expect(state.overallStats.currentStreak).toBe(1);
+        expect(state.overallStats.bestStreak).toBe(3);
+    });
+
+    // ── Test 13: same-round decision matching ─────────────────────
+
+    it("recordLiveHand correctly handles two decisions on the same round where only one is a mistake", () => {
+        const analysis = mockAnalysis({
+            decisions: [
+                {
+                    round: "flop",
+                    heroAction: "call",
+                    optimalAction: "call",
+                    optimalFrequencies: { fold: 0.1, call: 0.7, raise: 0.2 },
+                    evDiff: 0,
+                    heroEv: 1.0,
+                },
+                {
+                    round: "flop",
+                    heroAction: "raise",
+                    optimalAction: "fold",
+                    optimalFrequencies: { fold: 0.8, call: 0.1, raise: 0.1 },
+                    evDiff: -5.0,
+                },
+            ],
+            mistakes: [
+                {
+                    round: "flop",
+                    description: "Bad raise",
+                    severity: "major",
+                    evLoss: 5.0,
+                    heroAction: "raise",
+                    optimalAction: "fold",
+                    type: "BLUFF_WRONG_SPOT",
+                },
+            ],
+        });
+
+        useProgressStore.getState().recordLiveHand(analysis);
+
+        const state = useProgressStore.getState();
+        // 1 mistake (raise) + 1 clean decision (call) = 2 attempts
+        expect(state.attempts).toHaveLength(2);
+
+        const mistakeAttempt = state.attempts.find((a) => !a.isCorrect);
+        expect(mistakeAttempt).toBeDefined();
+        expect(mistakeAttempt!.concept).toBe("BLUFF_WRONG_SPOT");
+
+        const correctAttempt = state.attempts.find((a) => a.isCorrect);
+        expect(correctAttempt).toBeDefined();
+        expect(correctAttempt!.concept).toBe("check_call"); // inferLiveHandConcept for call
+    });
 });

@@ -87,9 +87,11 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
         const newAttempts: AttemptRecord[] = [];
         const now = Date.now();
 
-        // Collect mistake rounds for matching
-        const mistakeRounds = new Set(
-            analysis.mistakes.filter((m) => m.type).map((m) => m.round)
+        // Collect mistake keys for matching (round + heroAction to disambiguate)
+        const mistakeKeys = new Set(
+            analysis.mistakes
+                .filter((m) => m.type)
+                .map((m) => `${m.round}:${m.heroAction}`)
         );
 
         // Create AttemptRecords for mistakes (isCorrect: false)
@@ -108,7 +110,7 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
 
         // Create AttemptRecords for clean decisions (isCorrect: true)
         for (const decision of analysis.decisions) {
-            if (mistakeRounds.has(decision.round)) continue;
+            if (mistakeKeys.has(`${decision.round}:${decision.heroAction}`)) continue;
             newAttempts.push({
                 id: crypto.randomUUID(),
                 source: "live",
@@ -168,6 +170,18 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
             timestamp: now,
         };
 
+        // Update overall streak based on last attempt from this hand
+        let { currentStreak, bestStreak } = state.overallStats;
+        if (newAttempts.length > 0) {
+            const lastAttempt = newAttempts[newAttempts.length - 1];
+            if (lastAttempt.isCorrect) {
+                currentStreak++;
+                bestStreak = Math.max(bestStreak, currentStreak);
+            } else {
+                currentStreak = 0;
+            }
+        }
+
         set({
             attempts: allAttempts,
             conceptMastery: updatedMastery,
@@ -176,6 +190,8 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
                 ...state.overallStats,
                 totalHands: newTotalHands,
                 averageGrade,
+                currentStreak,
+                bestStreak,
             },
         });
     },
@@ -207,6 +223,15 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
         const overallAccuracy =
             drillAttempts.length > 0 ? correctDrills / drillAttempts.length : 0;
 
+        // Update overall streak
+        let { currentStreak, bestStreak } = state.overallStats;
+        if (result.isCorrect) {
+            currentStreak++;
+            bestStreak = Math.max(bestStreak, currentStreak);
+        } else {
+            currentStreak = 0;
+        }
+
         set({
             attempts: allAttempts,
             conceptMastery: updatedMastery,
@@ -214,6 +239,8 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
                 ...state.overallStats,
                 totalDrills: state.overallStats.totalDrills + 1,
                 overallAccuracy,
+                currentStreak,
+                bestStreak,
             },
         });
     },
