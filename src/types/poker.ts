@@ -1,3 +1,6 @@
+import type { ConceptMastery } from "./progress";
+import type { DrillConcept } from "./drill";
+
 // ── Primitive Types ──────────────────────────────────────────────────
 
 export type Suit = "hearts" | "diamonds" | "clubs" | "spades";
@@ -126,6 +129,51 @@ export interface CoachingExplanation {
     whyMistake: string;
     whatToDo: string;
     concept: MistakeType;
+}
+
+export type CoachingDepth = "foundational" | "tactical" | "nuanced";
+
+export interface EnhancedCoaching {
+    whatHappened: string;
+    whyMistake: string | null;
+    whatToDo: string;
+    tip: string | null;
+    boardNarrative: string;
+    concept: MistakeType | null;
+}
+
+export interface CoachingContext {
+    decision: Decision;
+    mistakeType: MistakeType | null;
+    mastery: ConceptMastery | undefined;
+    boardTexture: BoardTexture;
+    draws: DrawInfo;
+    round: BettingRound;
+}
+
+export interface Recommendation {
+    concept: DrillConcept | null;
+    reason: RecommendationReason;
+    narrative: string;
+}
+
+export type RecommendationReason =
+    | "unseen"
+    | "struggling"
+    | "reinforce"
+    | "advance"
+    | "stale"
+    | "complete";
+
+export interface SessionDebrief {
+    headline: string;
+    details: string[];
+    suggestedDrill: DrillConcept | null;
+}
+
+export interface ConceptTeaching {
+    summary: string;
+    explanation: string;
 }
 
 // ── Analysis ────────────────────────────────────────────────────────
