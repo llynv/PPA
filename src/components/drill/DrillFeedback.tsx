@@ -1,58 +1,40 @@
-import { useDrillStore, mapToFrequencyKey } from '../../store/drillStore';
-import { FrequencyBar } from './FrequencyBar';
-import type { DrillConcept } from '../../types/drill';
+import { useDrillStore, mapToFrequencyKey } from "../../store/drillStore";
+import { useProgressStore } from "../../store/progressStore";
+import { FrequencyBar } from "./FrequencyBar";
+import { CONCEPT_LABELS } from "../../lib/concept-labels";
+import { generateDrillCoaching } from "../../lib/coaching";
+import { CONCEPT_TEACHINGS } from "../../data/conceptTeachings";
 
 // ── Drill Feedback Dashboard ────────────────────────────────────────
 // Shown after the hero submits an answer. Displays verdict, GTO
 // frequencies, EV comparison, concept explanation, and context badges.
 
-const CONCEPT_LABELS: Record<DrillConcept, string> = {
-    open_raise: 'Open Raise',
-    three_bet: '3-Bet',
-    cold_call: 'Cold Call',
-    squeeze: 'Squeeze',
-    steal: 'Steal',
-    cbet_value: 'C-Bet (Value)',
-    cbet_bluff: 'C-Bet (Bluff)',
-    check_raise: 'Check-Raise',
-    float: 'Float',
-    probe: 'Probe Bet',
-    barrel: 'Barrel',
-    pot_control: 'Pot Control',
-    semi_bluff: 'Semi-Bluff',
-    check_call: 'Check-Call',
-    value_bet_thin: 'Thin Value Bet',
-    bluff_catch: 'Bluff Catch',
-    river_raise: 'River Raise',
-    river_bluff: 'River Bluff',
-};
-
-type Verdict = 'correct' | 'acceptable' | 'mistake';
+type Verdict = "correct" | "acceptable" | "mistake";
 
 function getVerdict(isCorrect: boolean, heroAction: string, optimalAction: string): Verdict {
-    if (isCorrect && heroAction === optimalAction) return 'correct';
-    if (isCorrect) return 'acceptable';
-    return 'mistake';
+    if (isCorrect && heroAction === optimalAction) return "correct";
+    if (isCorrect) return "acceptable";
+    return "mistake";
 }
 
 const VERDICT_CONFIG: Record<Verdict, { label: string; bg: string; border: string; text: string }> = {
     correct: {
-        label: 'Correct',
-        bg: 'bg-emerald-500/15',
-        border: 'border-emerald-500/30',
-        text: 'text-emerald-400',
+        label: "Correct",
+        bg: "bg-emerald-500/15",
+        border: "border-emerald-500/30",
+        text: "text-emerald-400",
     },
     acceptable: {
-        label: 'Acceptable',
-        bg: 'bg-amber-500/15',
-        border: 'border-amber-500/30',
-        text: 'text-amber-400',
+        label: "Acceptable",
+        bg: "bg-amber-500/15",
+        border: "border-amber-500/30",
+        text: "text-amber-400",
     },
     mistake: {
-        label: 'Mistake',
-        bg: 'bg-red-500/15',
-        border: 'border-red-500/30',
-        text: 'text-red-400',
+        label: "Mistake",
+        bg: "bg-red-500/15",
+        border: "border-red-500/30",
+        text: "text-red-400",
     },
 };
 
@@ -60,6 +42,7 @@ export function DrillFeedback() {
     const currentResult = useDrillStore((s) => s.currentResult);
     const session = useDrillStore((s) => s.session);
     const nextSpot = useDrillStore((s) => s.nextSpot);
+    const conceptMastery = useProgressStore((s) => s.conceptMastery);
 
     if (!currentResult || !session) return null;
 
@@ -78,18 +61,20 @@ export function DrillFeedback() {
 
     const isLastSpot = session.currentIndex >= session.queue.length - 1;
 
+    const coaching = generateDrillCoaching(spot, currentResult, conceptMastery[spot.concept], optimalResult);
+
     return (
         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-w-lg mx-auto w-full">
             {/* 1. Verdict banner */}
             <div className={`rounded-lg border px-4 py-3 text-center ${vc.bg} ${vc.border}`}>
                 <span className={`text-lg font-bold ${vc.text}`}>{vc.label}</span>
-                {verdict === 'acceptable' && (
+                {verdict === "acceptable" && (
                     <p className="text-sm text-neutral-400 mt-1">
                         Your {capitalize(heroAction)} is a valid mixed-strategy play,
                         but {capitalize(optimalResult.optimalAction)} is optimal.
                     </p>
                 )}
-                {verdict === 'mistake' && (
+                {verdict === "mistake" && (
                     <p className="text-sm text-neutral-400 mt-1">
                         The optimal play was {capitalize(optimalResult.optimalAction)}.
                     </p>
@@ -115,36 +100,75 @@ export function DrillFeedback() {
                 <div className="grid grid-cols-3 gap-3 text-center">
                     <div>
                         <p className="text-xs text-neutral-500 mb-1">Your EV</p>
-                        <p className={`text-sm font-bold ${evDelta < 0 ? 'text-red-400' : 'text-neutral-100'}`}>
-                            {heroEv >= 0 ? '+' : ''}{heroEv.toFixed(2)} BB
+                        <p className={`text-sm font-bold ${evDelta < 0 ? "text-red-400" : "text-neutral-100"}`}>
+                            {heroEv >= 0 ? "+" : ""}{heroEv.toFixed(2)} BB
                         </p>
                     </div>
                     <div>
                         <p className="text-xs text-neutral-500 mb-1">Optimal EV</p>
                         <p className="text-sm font-bold text-emerald-400">
-                            {optimalEv >= 0 ? '+' : ''}{optimalEv.toFixed(2)} BB
+                            {optimalEv >= 0 ? "+" : ""}{optimalEv.toFixed(2)} BB
                         </p>
                     </div>
                     <div>
                         <p className="text-xs text-neutral-500 mb-1">EV Delta</p>
-                        <p className={`text-sm font-bold ${evDelta < 0 ? 'text-red-400' : 'text-emerald-400'}`}>
-                            {evDelta >= 0 ? '+' : ''}{evDelta.toFixed(2)} BB
+                        <p className={`text-sm font-bold ${evDelta < 0 ? "text-red-400" : "text-emerald-400"}`}>
+                            {evDelta >= 0 ? "+" : ""}{evDelta.toFixed(2)} BB
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* 4. Concept card */}
-            <div className="bg-neutral-900 rounded-lg border border-neutral-800 p-4 space-y-2">
-                <div className="flex items-center gap-2">
+            {/* 4. Coaching card */}
+            <div className="bg-neutral-900 rounded-lg border border-neutral-800 p-4 space-y-3">
+                <div className="flex items-center gap-2 mb-1">
                     <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 text-xs font-medium">
                         {CONCEPT_LABELS[spot.concept]}
                     </span>
                 </div>
-                <p className="text-sm text-neutral-300 leading-relaxed">
-                    {optimalResult.reasoning}
-                </p>
+                {/* What happened */}
+                <div>
+                    <p className="text-neutral-500 text-xs font-medium mb-0.5">What happened</p>
+                    <p className="text-neutral-300 text-sm leading-relaxed">{coaching.whatHappened}</p>
+                </div>
+                {/* Why it's a mistake (only for mistakes) */}
+                {coaching.whyMistake && (
+                    <div>
+                        <p className="text-amber-500 text-xs font-medium mb-0.5">Why it&apos;s a mistake</p>
+                        <p className="text-neutral-200 text-sm leading-relaxed">{coaching.whyMistake}</p>
+                    </div>
+                )}
+                {/* What to do */}
+                <div>
+                    <p className="text-emerald-500 text-xs font-medium mb-0.5">
+                        {coaching.whyMistake ? "What to do instead" : "Why this is correct"}
+                    </p>
+                    <p className="text-neutral-200 text-sm leading-relaxed">{coaching.whatToDo}</p>
+                </div>
+                {/* Tip */}
+                {coaching.tip && (
+                    <div className="bg-sky-500/10 border border-sky-500/20 rounded-lg px-3 py-2">
+                        <p className="text-sky-400 text-xs font-medium mb-0.5">Tip</p>
+                        <p className="text-neutral-300 text-xs leading-relaxed">{coaching.tip}</p>
+                    </div>
+                )}
+                {/* Board narrative */}
+                <p className="text-neutral-500 text-xs italic leading-relaxed">{coaching.boardNarrative}</p>
             </div>
+
+            {/* 4b. Concept teaching (collapsible) */}
+            {CONCEPT_TEACHINGS[spot.concept] && (
+                <details className="bg-neutral-900 rounded-lg border border-neutral-800">
+                    <summary className="px-4 py-3 text-sm font-medium text-neutral-300 cursor-pointer hover:text-neutral-100">
+                        About {CONCEPT_LABELS[spot.concept]}
+                    </summary>
+                    <div className="px-4 pb-3">
+                        <p className="text-neutral-400 text-sm leading-relaxed">
+                            {CONCEPT_TEACHINGS[spot.concept].explanation}
+                        </p>
+                    </div>
+                </details>
+            )}
 
             {/* 5. Context badges */}
             <div className="space-y-2">
@@ -215,7 +239,7 @@ export function DrillFeedback() {
                 onClick={nextSpot}
                 className="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 px-4 rounded-lg font-bold text-base transition-colors min-h-[48px]"
             >
-                {isLastSpot ? 'View Summary' : 'Next Spot'}
+                {isLastSpot ? "View Summary" : "Next Spot"}
             </button>
         </div>
     );
@@ -226,5 +250,3 @@ export function DrillFeedback() {
 function capitalize(s: string): string {
     return s.charAt(0).toUpperCase() + s.slice(1);
 }
-
-
