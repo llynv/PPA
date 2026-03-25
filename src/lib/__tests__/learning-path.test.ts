@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { isTierUnlocked, recommendNextConcept } from "../learning-path";
+import { isTierUnlocked, recommendNextConcept, getRecommendation } from "../learning-path";
 import { CURRICULUM } from "../../data/curriculum";
 import type { ConceptMastery } from "../../types/progress";
 import type { DrillConcept } from "../../types/drill";
@@ -218,5 +218,16 @@ describe("recommendNextConcept", () => {
         ]);
         // cbet_bluff has lowest recentAccuracy (0.1) across all tiers
         expect(recommendNextConcept(mastery)).toBe("cbet_bluff");
+    });
+});
+
+// ── getRecommendation re-export ────────────────────────────────────
+
+describe("getRecommendation re-export", () => {
+    it("returns recommendation with reason and narrative", () => {
+        const rec = getRecommendation({});
+        expect(rec.concept).toBe("open_raise");
+        expect(rec.reason).toBe("unseen");
+        expect(rec.narrative).toBeTruthy();
     });
 });

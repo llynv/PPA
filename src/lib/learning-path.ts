@@ -88,3 +88,6 @@ export function recommendNextConcept(
     // 6. All mastered
     return null;
 }
+
+// Re-export for consumers that want the full recommendation with narrative
+export { getRecommendation } from "./coaching";
