@@ -1,20 +1,22 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import type { SpotCategory, DrillFilters, DrillConcept } from '../../types/drill';
-import { DRILL_SPOTS } from '../../data/drillSpots';
-import { useDrillStore } from '../../store/drillStore';
+import type { SpotCategory, DrillFilters, DrillConcept } from "../../types/drill";
+import { DRILL_SPOTS } from "../../data/drillSpots";
+import { useDrillStore } from "../../store/drillStore";
+import { CURRICULUM } from "../../data/curriculum";
+import { CONCEPT_LABELS } from "../../lib/concept-labels";
 
 const CATEGORIES: { label: string; value: SpotCategory }[] = [
-  { label: 'Preflop', value: 'preflop' },
-  { label: 'Flop', value: 'flop' },
-  { label: 'Turn', value: 'turn' },
-  { label: 'River', value: 'river' },
+  { label: "Preflop", value: "preflop" },
+  { label: "Flop", value: "flop" },
+  { label: "Turn", value: "turn" },
+  { label: "River", value: "river" },
 ];
 
 const DIFFICULTIES: { label: string; value: 1 | 2 | 3 }[] = [
-  { label: 'Beginner', value: 1 },
-  { label: 'Intermediate', value: 2 },
-  { label: 'Advanced', value: 3 },
+  { label: "Beginner", value: 1 },
+  { label: "Intermediate", value: 2 },
+  { label: "Advanced", value: 3 },
 ];
 
 function toggleInArray<T>(arr: T[], item: T): T[] {
@@ -85,8 +87,8 @@ export function DrillSetup() {
                   onClick={() => setSelectedCategories(toggleInArray(selectedCategories, value))}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      ? "bg-amber-600 text-white"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
                 >
                   {label}
@@ -110,8 +112,8 @@ export function DrillSetup() {
                   onClick={() => setSelectedDifficulties(toggleInArray(selectedDifficulties, value))}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                     active
-                      ? 'bg-amber-600 text-white'
-                      : 'bg-neutral-800 text-neutral-300 hover:bg-neutral-700'
+                      ? "bg-amber-600 text-white"
+                      : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
                   }`}
                 >
                   {label}
@@ -121,10 +123,48 @@ export function DrillSetup() {
           </div>
         </div>
 
+        {/* Concept Filter */}
+        <div className="mb-5">
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-neutral-300 font-medium text-sm">Concept</label>
+            {selectedConcepts.length > 0 && (
+              <button
+                onClick={() => setSelectedConcepts([])}
+                className="text-xs text-neutral-500 hover:text-neutral-300"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+          {CURRICULUM.map((tier) => (
+            <div key={tier.id} className="mb-3">
+              <p className="text-xs text-neutral-500 mb-1.5">{tier.name}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {tier.concepts.map((concept) => {
+                  const active = selectedConcepts.includes(concept);
+                  return (
+                    <button
+                      key={concept}
+                      onClick={() => setSelectedConcepts(toggleInArray(selectedConcepts, concept))}
+                      className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                        active
+                          ? "bg-amber-600 text-white"
+                          : "bg-neutral-800 text-neutral-300 hover:bg-neutral-700"
+                      }`}
+                    >
+                      {CONCEPT_LABELS[concept] ?? concept}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
         {/* Spot Count */}
         <p className="text-neutral-400 text-sm mb-4">
-          <span className="text-neutral-100 font-semibold">{matchingCount}</span>{' '}
-          {matchingCount === 1 ? 'spot matches' : 'spots match'} your filters
+          <span className="text-neutral-100 font-semibold">{matchingCount}</span>{" "}
+          {matchingCount === 1 ? "spot matches" : "spots match"} your filters
         </p>
 
         {/* Start Button */}
