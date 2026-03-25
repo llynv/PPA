@@ -14,6 +14,7 @@ import { createDeck, shuffleDeck, dealCards } from "../lib/deck";
 import { AI_NAMES, getRandomPersonality, getAIDecision } from "../lib/ai";
 import { getBestHand, compareHands } from "../lib/evaluator";
 import { analyzeHand } from "../lib/analysis";
+import { useProgressStore } from "./progressStore";
 
 // ── Defaults ────────────────────────────────────────────────────────
 
@@ -767,6 +768,7 @@ export const useGameStore = create<StoreState>((set, get) => ({
             analysisData: analysis,
             sessionAnalyses: [...state.sessionAnalyses, analysis],
         });
+        useProgressStore.getState().recordLiveHand(analysis);
     },
 
     // ── selectAnalysis ──

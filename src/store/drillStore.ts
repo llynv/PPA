@@ -1,8 +1,9 @@
-import { create } from 'zustand';
-import type { ActionType, DecisionResult } from '../types/poker';
-import type { DrillSpot, DrillSession, DrillResult, DrillFilters } from '../types/drill';
-import { DRILL_SPOTS } from '../data/drillSpots';
-import { evaluateDecision } from '../lib/poker-engine/decision';
+import { create } from "zustand";
+import type { ActionType, DecisionResult } from "../types/poker";
+import type { DrillSpot, DrillSession, DrillResult, DrillFilters } from "../types/drill";
+import { DRILL_SPOTS } from "../data/drillSpots";
+import { evaluateDecision } from "../lib/poker-engine/decision";
+import { useProgressStore } from "./progressStore";
 
 type DrillPhase = 'setup' | 'drilling' | 'feedback' | 'summary';
 
@@ -98,7 +99,7 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
     const newBestStreak = Math.max(session.bestStreak, newStreak);
 
     set({
-      phase: 'feedback',
+      phase: "feedback",
       currentResult: result,
       session: {
         ...session,
@@ -107,6 +108,7 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
         bestStreak: newBestStreak,
       },
     });
+    useProgressStore.getState().recordDrillAttempt(result, spot);
   },
 
   nextSpot: () => {
@@ -115,7 +117,10 @@ export const useDrillStore = create<DrillStore>((set, get) => ({
 
     const nextIndex = session.currentIndex + 1;
     if (nextIndex >= session.queue.length) {
-      set({ phase: 'summary', currentResult: null });
+      if (session) {
+        useProgressStore.getState().recordDrillSession(session);
+      }
+      set({ phase: "summary", currentResult: null });
     } else {
       set({
         phase: 'drilling',
