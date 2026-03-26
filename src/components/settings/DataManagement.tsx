@@ -73,7 +73,8 @@ export function DataManagement() {
 
                 <button
                     onClick={handleImport}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                    disabled={!isHydrated}
+                    className="bg-blue-600 hover:bg-blue-500 disabled:bg-neutral-700 disabled:text-neutral-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                     Import Backup
                 </button>

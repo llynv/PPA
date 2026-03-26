@@ -498,7 +498,7 @@ export const useProgressStore = create<ProgressStore>()(
                 bestStreak: 0,
                 averageGrade: "C",
             },
-            isHydrated: false,
+            isHydrated: true,
         });
     },
         }),
