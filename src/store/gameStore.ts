@@ -10,6 +10,7 @@ import type {
     HandHistory,
     Player,
     PlayerAction,
+    SidePot,
 } from "../types/poker";
 import { createDeck, shuffleDeck, dealCards } from "../lib/deck";
 import { AI_NAMES, getRandomPersonality, getAIDecision } from "../lib/ai";
@@ -109,12 +110,48 @@ function getMinRaise(
 
 // ── Store Types ─────────────────────────────────────────────────────
 
+export function computeSidePots(
+    contributions: Record<string, number>,
+    foldedIds: Set<string>,
+): SidePot[] {
+    const entries = Object.entries(contributions);
+    const levels = [...new Set(entries.map(([, amt]) => amt))].sort((a, b) => a - b);
+
+    const pots: SidePot[] = [];
+    let prevLevel = 0;
+
+    for (const level of levels) {
+        const increment = level - prevLevel;
+        if (increment <= 0) continue;
+
+        const contributors = entries
+            .filter(([, amt]) => amt >= level)
+            .map(([id]) => id);
+
+        const amount = increment * contributors.length;
+        const eligiblePlayerIds = contributors.filter((id) => !foldedIds.has(id));
+
+        if (eligiblePlayerIds.length > 0) {
+            pots.push({ amount, eligiblePlayerIds });
+        } else if (pots.length > 0) {
+            pots[pots.length - 1].amount += amount;
+        } else {
+            pots.push({ amount, eligiblePlayerIds: contributors });
+        }
+
+        prevLevel = level;
+    }
+
+    return pots;
+}
+
 interface StoreState {
     // Game state
     players: Player[];
     deck: Card[];
     communityCards: Card[];
     pot: number;
+    contributions: Record<string, number>;
     currentRound: BettingRound;
     actions: PlayerAction[];
     activePlayerIndex: number;
@@ -160,6 +197,7 @@ export const useGameStore = create<StoreState>()(
     deck: [],
     communityCards: [],
     pot: 0,
+    contributions: {},
     currentRound: "preflop",
     actions: [],
     activePlayerIndex: 0,
@@ -278,6 +316,10 @@ export const useGameStore = create<StoreState>()(
 
         let pot = sbAmount + bbAmount;
 
+        const contributions: Record<string, number> = {};
+        contributions[players[sbIndex].id] = sbAmount;
+        contributions[players[bbIndex].id] = bbAmount;
+
         // Deal 2 cards to each player
         let remainingDeck = deck;
         for (let i = 0; i < numPlayers; i++) {
@@ -304,6 +346,7 @@ export const useGameStore = create<StoreState>()(
             deck: remainingDeck,
             communityCards: [],
             pot,
+            contributions,
             currentRound: "preflop",
             actions: [],
             activePlayerIndex,
@@ -380,6 +423,11 @@ export const useGameStore = create<StoreState>()(
             timestamp: Date.now(),
         };
 
+        const updatedContributions = { ...state.contributions };
+        if (potDelta > 0) {
+            updatedContributions[player.id] = (updatedContributions[player.id] ?? 0) + potDelta;
+        }
+
         const updatedActions = [...state.actions, newAction];
         const newPot = state.pot + potDelta;
 
@@ -404,6 +452,7 @@ export const useGameStore = create<StoreState>()(
             set({
                 players: updatedPlayers,
                 pot: 0,
+                contributions: {},
                 actions: updatedActions,
                 gamePhase: "showdown",
                 winner: winner.id,
@@ -418,6 +467,7 @@ export const useGameStore = create<StoreState>()(
             set({
                 players: updatedPlayers,
                 pot: newPot,
+                contributions: updatedContributions,
                 actions: updatedActions,
             });
             get().advanceRound();
@@ -433,6 +483,7 @@ export const useGameStore = create<StoreState>()(
         set({
             players: updatedPlayers,
             pot: newPot,
+            contributions: updatedContributions,
             actions: updatedActions,
             activePlayerIndex:
                 nextActiveIndex !== -1 ? nextActiveIndex : activePlayerIndex,
@@ -654,7 +705,7 @@ export const useGameStore = create<StoreState>()(
     // ── resolveShowdown ──
     resolveShowdown: () => {
         const state = get();
-        const { players, communityCards, pot, handNumber, actions } = state;
+        const { players, communityCards, pot, handNumber, actions, contributions } = state;
 
         const contenders = players
             .map((p, i) => ({ player: p, index: i }))
@@ -662,8 +713,8 @@ export const useGameStore = create<StoreState>()(
 
         if (contenders.length === 0) return;
 
+        // Edge case: not enough community cards
         if (communityCards.length < 3) {
-            // Not enough community cards — first contender wins (shouldn't normally happen)
             const winner = contenders[0];
             const updatedPlayers = players.map((p, i) => {
                 if (i === winner.index) return { ...p, stack: p.stack + pot };
@@ -685,6 +736,7 @@ export const useGameStore = create<StoreState>()(
             set({
                 players: updatedPlayers,
                 pot: 0,
+                contributions: {},
                 gamePhase: "showdown",
                 winner: winner.player.id,
                 winnerHand: undefined,
@@ -693,46 +745,68 @@ export const useGameStore = create<StoreState>()(
             return;
         }
 
-        // Find the best hand using compareHands for precise tiebreaker logic
-        let bestContenders = [contenders[0]];
-        let bestCards = [...contenders[0].player.holeCards, ...communityCards];
+        // Compute side pots
+        const foldedIds = new Set(
+            players.filter((p) => p.isFolded).map((p) => p.id),
+        );
+        const sidePots = computeSidePots(contributions, foldedIds);
 
-        for (let i = 1; i < contenders.length; i++) {
-            const contender = contenders[i];
-            const contenderCards = [
-                ...contender.player.holeCards,
-                ...communityCards,
-            ];
-            const comparison = compareHands(contenderCards, bestCards);
+        // Resolve each pot independently
+        const updatedPlayers = players.map((p) => ({ ...p }));
+        let overallWinnerId = contenders[0].player.id;
+        let overallWinnerHand: string | undefined;
 
-            if (comparison > 0) {
-                // This hand is better
-                bestContenders = [contender];
-                bestCards = contenderCards;
-            } else if (comparison === 0) {
-                // Tie — add to winners
-                bestContenders.push(contender);
+        for (const sidePot of sidePots) {
+            // Find eligible contenders for this pot
+            const eligible = contenders.filter(({ player }) =>
+                sidePot.eligiblePlayerIds.includes(player.id),
+            );
+
+            if (eligible.length === 0) continue;
+
+            if (eligible.length === 1) {
+                // Only one eligible — they win this pot
+                const winnerIdx = eligible[0].index;
+                updatedPlayers[winnerIdx].stack += sidePot.amount;
+                continue;
+            }
+
+            // Compare hands among eligible contenders
+            let bestGroup = [eligible[0]];
+            let bestCards = [...eligible[0].player.holeCards, ...communityCards];
+
+            for (let i = 1; i < eligible.length; i++) {
+                const c = eligible[i];
+                const cCards = [...c.player.holeCards, ...communityCards];
+                const cmp = compareHands(cCards, bestCards);
+                if (cmp > 0) {
+                    bestGroup = [c];
+                    bestCards = cCards;
+                } else if (cmp === 0) {
+                    bestGroup.push(c);
+                }
+            }
+
+            // Split this pot among winners
+            const share = Math.floor(sidePot.amount / bestGroup.length);
+            const remainder = sidePot.amount - share * bestGroup.length;
+
+            for (let i = 0; i < bestGroup.length; i++) {
+                const extra = i === 0 ? remainder : 0;
+                updatedPlayers[bestGroup[i].index].stack += share + extra;
+            }
+
+            // Track overall winner (winner of the main pot)
+            if (sidePot === sidePots[0]) {
+                overallWinnerId = bestGroup[0].player.id;
+                const bestEval = getBestHand(bestGroup[0].player.holeCards, communityCards);
+                overallWinnerHand = bestEval.description;
             }
         }
 
-        // Split pot among winners
-        const share = Math.floor(pot / bestContenders.length);
-        const remainder = pot - share * bestContenders.length;
-        const winnerIndices = new Set(bestContenders.map((c) => c.index));
-
-        const updatedPlayers = players.map((p, i) => {
-            if (winnerIndices.has(i)) {
-                // First winner gets any remainder (1 chip rounding)
-                const extra = i === bestContenders[0].index ? remainder : 0;
-                return { ...p, stack: p.stack + share + extra };
-            }
-            return { ...p };
-        });
-
-        const bestEval = getBestHand(
-            bestContenders[0].player.holeCards,
-            communityCards,
-        );
+        // Total won by overall winner
+        const overallWinnerIdx = players.findIndex((p) => p.id === overallWinnerId);
+        const totalWon = updatedPlayers[overallWinnerIdx].stack - players[overallWinnerIdx].stack;
 
         const handHistoryEntry: HandHistory = {
             handNumber,
@@ -741,17 +815,18 @@ export const useGameStore = create<StoreState>()(
             communityCards: [...communityCards],
             actions: [...actions],
             pot,
-            winnerId: bestContenders[0].player.id,
-            winnerHand: bestEval.description,
-            potWon: pot,
+            winnerId: overallWinnerId,
+            winnerHand: overallWinnerHand,
+            potWon: totalWon,
         };
 
         set({
             players: updatedPlayers,
             pot: 0,
+            contributions: {},
             gamePhase: "showdown",
-            winner: bestContenders[0].player.id,
-            winnerHand: bestEval.description,
+            winner: overallWinnerId,
+            winnerHand: overallWinnerHand,
             handHistory: [...state.handHistory, handHistoryEntry],
         });
     },
@@ -793,6 +868,7 @@ export const useGameStore = create<StoreState>()(
             deck: [],
             communityCards: [],
             pot: 0,
+            contributions: {},
             currentRound: "preflop",
             actions: [],
             activePlayerIndex: 0,

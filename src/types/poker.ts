@@ -61,6 +61,11 @@ export interface Player {
     personality?: AIPersonality;
 }
 
+export interface SidePot {
+    amount: number;
+    eligiblePlayerIds: string[];
+}
+
 export interface PlayerAction {
     playerId: string;
     type: ActionType;
