@@ -16,3 +16,5 @@ export function LiveTablePage() {
 
     return <Navigate to="/review" replace />;
 }
+
+export default LiveTablePage;

@@ -18,3 +18,5 @@ export function ProgressPage() {
         </div>
     );
 }
+
+export default ProgressPage;

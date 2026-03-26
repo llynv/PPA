@@ -52,3 +52,5 @@ export function DrillsPage() {
 
     return null;
 }
+
+export default DrillsPage;

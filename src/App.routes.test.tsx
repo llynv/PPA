@@ -199,11 +199,11 @@ describe("App routing shell", () => {
         useGameStore.setState(useGameStore.getInitialState(), true);
     });
 
-    it("defaults to Home at the root route with product navigation", () => {
+    it("defaults to Home at the root route with product navigation", async () => {
         renderAt("/");
 
         expect(
-            screen.getByRole("heading", { name: /learning-first poker coach/i }),
+            await screen.findByRole("heading", { name: /learning-first poker coach/i }),
         ).toBeInTheDocument();
 
         const primaryNav = screen.getByLabelText(/primary product navigation/i);
@@ -215,11 +215,11 @@ describe("App routing shell", () => {
         expect(within(primaryNav).getByRole("link", { name: /^library$/i })).toBeInTheDocument();
     });
 
-    it("shows mode selector with Live Table and Spot Drills at /practice", () => {
+    it("shows mode selector with Live Table and Spot Drills at /practice", async () => {
         renderAt("/practice");
 
         expect(
-            screen.getByRole("heading", { name: /live table/i }),
+            await screen.findByRole("heading", { name: /live table/i }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole("heading", { name: /spot drills/i }),
@@ -232,56 +232,56 @@ describe("App routing shell", () => {
         ).toHaveAttribute("href", "/practice/drills");
     });
 
-    it("renders GameSettings at /practice/live in settings phase", () => {
+    it("renders GameSettings at /practice/live in settings phase", async () => {
         renderAt("/practice/live");
 
         expect(
-            screen.getByRole("heading", { name: /game settings/i }),
+            await screen.findByRole("heading", { name: /game settings/i }),
         ).toBeInTheDocument();
     });
 
-    it("renders Spot Drills placeholder at /practice/drills", () => {
+    it("renders Spot Drills placeholder at /practice/drills", async () => {
         renderAt("/practice/drills");
 
         expect(
-            screen.getByRole("heading", { name: /spot drills/i }),
+            await screen.findByRole("heading", { name: /spot drills/i }),
         ).toBeInTheDocument();
         expect(
             screen.getByText(/practice isolated decisions with instant gto feedback/i),
         ).toBeInTheDocument();
     });
 
-    it("shows a Review empty state when no analysis is available", () => {
+    it("shows a Review empty state when no analysis is available", async () => {
         renderAt("/review");
 
         expect(
-            screen.getByRole("heading", { name: /review your hands/i }),
+            await screen.findByRole("heading", { name: /review your hands/i }),
         ).toBeInTheDocument();
         expect(
             screen.getByText(/finish a hand in practice to unlock review/i),
         ).toBeInTheDocument();
     });
 
-    it("redirects /practice/live to /review when game phase is analysis", () => {
+    it("redirects /practice/live to /review when game phase is analysis", async () => {
         setAnalysisState();
 
         renderAt("/practice/live");
 
         expect(
-            screen.getByRole("heading", { name: /hand #2/i }),
+            await screen.findByRole("heading", { name: /hand #2/i }),
         ).toBeInTheDocument();
         expect(
             screen.getByTestId("location-probe"),
         ).toHaveTextContent("/review");
     });
 
-    it("renders the analysis dashboard on Review when analysis exists", () => {
+    it("renders the analysis dashboard on Review when analysis exists", async () => {
         setAnalysisState();
 
         renderAt("/review");
 
         expect(
-            screen.getByRole("heading", { name: /hand #2/i }),
+            await screen.findByRole("heading", { name: /hand #2/i }),
         ).toBeInTheDocument();
         expect(
             screen.getByRole("button", { name: /next hand/i }),
@@ -291,45 +291,46 @@ describe("App routing shell", () => {
         ).toBeInTheDocument();
     });
 
-    it("routes Next Hand from Review back to live table", () => {
+    it("routes Next Hand from Review back to live table", async () => {
         setAnalysisState();
 
         renderAt("/review");
 
-        fireEvent.click(screen.getByRole("button", { name: /next hand/i }));
+        fireEvent.click(await screen.findByRole("button", { name: /next hand/i }));
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice/live");
     });
 
-    it("routes Back to Practice from Review back to practice mode selector", () => {
+    it("routes Back to Practice from Review back to practice mode selector", async () => {
         setAnalysisState();
 
         renderAt("/review");
 
-        fireEvent.click(screen.getByRole("button", { name: /back to practice/i }));
+        fireEvent.click(await screen.findByRole("button", { name: /back to practice/i }));
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
         expect(screen.getByRole("heading", { name: /live table/i })).toBeInTheDocument();
     });
 
-    it("routes header New Game from Review back to practice mode selector", () => {
+    it("routes header New Game from Review back to practice mode selector", async () => {
         setAnalysisState();
 
         renderAt("/review");
 
-        fireEvent.click(screen.getAllByRole("button", { name: /new game/i })[0]);
+        const buttons = await screen.findAllByRole("button", { name: /new game/i });
+        fireEvent.click(buttons[0]);
 
         expect(screen.getByTestId("location-probe")).toHaveTextContent("/practice");
         expect(screen.getByRole("heading", { name: /live table/i })).toBeInTheDocument();
     });
 
-    it("lets showdown users enter review from the review route", () => {
+    it("lets showdown users enter review from the review route", async () => {
         setShowdownState();
 
         renderAt("/review");
 
         expect(
-            screen.getByRole("heading", { name: /your showdown is ready for review/i }),
+            await screen.findByRole("heading", { name: /your showdown is ready for review/i }),
         ).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole("button", { name: /open hand review/i }));
@@ -337,19 +338,19 @@ describe("App routing shell", () => {
         expect(screen.getByRole("heading", { name: /hand #2/i })).toBeInTheDocument();
     });
 
-    it("highlights Practice nav on /practice/live", () => {
+    it("highlights Practice nav on /practice/live", async () => {
         renderAt("/practice/live");
 
-        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        const primaryNav = await screen.findByLabelText(/primary product navigation/i);
         const practiceLink = within(primaryNav).getByRole("link", { name: /^practice$/i });
 
         expect(practiceLink.className).toContain("bg-emerald-600");
     });
 
-    it("highlights Practice nav on /practice/drills", () => {
+    it("highlights Practice nav on /practice/drills", async () => {
         renderAt("/practice/drills");
 
-        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        const primaryNav = await screen.findByLabelText(/primary product navigation/i);
         const practiceLink = within(primaryNav).getByRole("link", { name: /^practice$/i });
 
         expect(practiceLink.className).toContain("bg-emerald-600");
@@ -365,15 +366,15 @@ describe("App routing shell", () => {
         expect(await screen.findByText(/spot drills/i)).toBeInTheDocument();
     });
 
-    it("shows Learn link in primary navigation", () => {
+    it("shows Learn link in primary navigation", async () => {
         renderAt("/");
-        const primaryNav = screen.getByLabelText(/primary product navigation/i);
+        const primaryNav = await screen.findByLabelText(/primary product navigation/i);
         expect(within(primaryNav).getByRole("link", { name: /^learn$/i })).toBeInTheDocument();
     });
 
-    it("renders Learning Path at /learn", () => {
+    it("renders Learning Path at /learn", async () => {
         renderAt("/learn");
         // Should show some curriculum content
-        expect(screen.getByText(/foundations/i)).toBeInTheDocument();
+        expect(await screen.findByText(/foundations/i)).toBeInTheDocument();
     });
 });

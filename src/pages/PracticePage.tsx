@@ -37,3 +37,5 @@ export function PracticePage() {
         </div>
     );
 }
+
+export default PracticePage;

@@ -12,3 +12,5 @@ export function LibraryPage() {
         </div>
     );
 }
+
+export default LibraryPage;

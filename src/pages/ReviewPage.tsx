@@ -67,3 +67,5 @@ export function ReviewPage() {
         </div>
     );
 }
+
+export default ReviewPage;
