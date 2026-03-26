@@ -1,19 +1,12 @@
 import type { HeroGrade as HeroGradeType, Decision } from "../../types/poker";
 import { useGameStore } from "../../store/gameStore";
+import { getGradeColorHex } from "../../lib/grade-utils";
 
 interface HeroGradeProps {
     grade: HeroGradeType;
     evLoss: number;
     heroEv?: number;
     decisions?: Decision[];
-}
-
-function getGradeColor(grade: HeroGradeType): string {
-    if (grade.startsWith("A")) return "#10b981"; // emerald-500
-    if (grade.startsWith("B")) return "#0ea5e9"; // sky-500
-    if (grade.startsWith("C")) return "#f59e0b"; // amber-500
-    if (grade === "D") return "#f97316"; // orange-500
-    return "#ef4444"; // red-500
 }
 
 function getGradePercent(grade: HeroGradeType): number {
@@ -34,7 +27,7 @@ function getGradePercent(grade: HeroGradeType): number {
 }
 
 export function HeroGrade({ grade, evLoss, heroEv, decisions }: HeroGradeProps) {
-    const color = getGradeColor(grade);
+    const color = getGradeColorHex(grade);
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
     const gradePercent = getGradePercent(grade);

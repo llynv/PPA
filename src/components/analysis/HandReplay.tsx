@@ -38,7 +38,6 @@ const STREET_LABELS: Record<BettingRound, string> = {
     flop: "Flop",
     turn: "Turn",
     river: "River",
-    showdown: "Showdown",
 };
 
 function getCommunityCardsAtStreet(
@@ -53,7 +52,6 @@ function getCommunityCardsAtStreet(
         case "turn":
             return allCards.slice(0, 4);
         case "river":
-        case "showdown":
             return allCards.slice(0, 5);
     }
 }
@@ -96,7 +94,6 @@ export function HandReplay() {
         "flop",
         "turn",
         "river",
-        "showdown",
     ];
     const streetIdx = streetOrder.indexOf(selectedStreet);
     const potAtStreet = latestHand.actions

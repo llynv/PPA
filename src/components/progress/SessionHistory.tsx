@@ -1,5 +1,5 @@
 import { useProgressStore } from "../../store/progressStore";
-import type { HeroGrade } from "../../types/poker";
+import { getGradeColorClass } from "../../lib/grade-utils";
 
 function formatRelativeTime(timestamp: number): string {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -10,14 +10,6 @@ function formatRelativeTime(timestamp: number): string {
     if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
-}
-
-function getGradeColor(grade: HeroGrade): string {
-    if (grade.startsWith("A")) return "text-emerald-400";
-    if (grade.startsWith("B")) return "text-sky-400";
-    if (grade.startsWith("C")) return "text-amber-400";
-    if (grade === "D") return "text-orange-400";
-    return "text-red-400";
 }
 
 export function SessionHistory() {
@@ -72,7 +64,7 @@ export function SessionHistory() {
                         <div className="flex items-center gap-3 shrink-0">
                             {session.type === "live" && session.averageGrade && (
                                 <span
-                                    className={`text-sm font-bold ${getGradeColor(session.averageGrade)}`}
+                                    className={`text-sm font-bold ${getGradeColorClass(session.averageGrade)}`}
                                 >
                                     {session.averageGrade}
                                 </span>

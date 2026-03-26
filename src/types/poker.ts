@@ -22,7 +22,7 @@ export type Rank =
 
 export type ActionType = "fold" | "check" | "call" | "bet" | "raise";
 
-export type BettingRound = "preflop" | "flop" | "turn" | "river" | "showdown";
+export type BettingRound = "preflop" | "flop" | "turn" | "river";
 
 export type GamePhase = "settings" | "playing" | "showdown" | "analysis";
 

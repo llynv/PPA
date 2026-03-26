@@ -55,7 +55,6 @@ function getCommunityCardsForRound(
         case "turn":
             return allCommunityCards.slice(0, 4);
         case "river":
-        case "showdown":
             return allCommunityCards.slice(0, 5);
     }
 }
@@ -646,7 +645,6 @@ export function getSessionStats(analyses: AnalysisData[]): SessionStats {
         flop: 0,
         turn: 0,
         river: 0,
-        showdown: 0,
     };
 
     for (const mistake of allMistakes) {

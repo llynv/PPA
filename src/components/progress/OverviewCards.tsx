@@ -1,13 +1,5 @@
 import { useProgressStore } from "../../store/progressStore";
-import type { HeroGrade } from "../../types/poker";
-
-function getGradeColor(grade: HeroGrade): string {
-    if (grade.startsWith("A")) return "text-emerald-400";
-    if (grade.startsWith("B")) return "text-sky-400";
-    if (grade.startsWith("C")) return "text-amber-400";
-    if (grade === "D") return "text-orange-400";
-    return "text-red-400";
-}
+import { getGradeColorClass } from "../../lib/grade-utils";
 
 function getAccuracyColor(accuracy: number): string {
     if (accuracy >= 0.8) return "text-emerald-400";
@@ -65,7 +57,7 @@ export function OverviewCards() {
 
             {/* Average Grade */}
             <div className="bg-slate-800 rounded-xl p-4 shadow-lg">
-                <p className={`text-2xl font-bold ${getGradeColor(averageGrade)}`}>
+                <p className={`text-2xl font-bold ${getGradeColorClass(averageGrade)}`}>
                     {averageGrade}
                 </p>
                 <p className="text-xs text-slate-400 mt-1">Average Grade</p>

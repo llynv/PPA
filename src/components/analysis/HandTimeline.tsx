@@ -17,7 +17,6 @@ const ROUND_LABELS: Record<BettingRound, string> = {
     flop: "Flop",
     turn: "Turn",
     river: "River",
-    showdown: "Showdown",
 };
 
 // ── Helpers ─────────────────────────────────────────────────────────
@@ -121,7 +120,6 @@ function getCommunityCardsAtStreet(
         case "turn":
             return allCards.slice(0, 4);
         case "river":
-        case "showdown":
             return allCards.slice(0, 5);
     }
 }
