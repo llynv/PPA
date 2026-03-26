@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type {
     ActionType,
     AnalysisData,
@@ -151,7 +152,9 @@ interface StoreState {
 
 // ── Store ────────────────────────────────────────────────────────────
 
-export const useGameStore = create<StoreState>((set, get) => ({
+export const useGameStore = create<StoreState>()(
+    persist(
+        (set, get) => ({
     // ── Initial State ──
     players: [],
     deck: [],
@@ -810,4 +813,14 @@ export const useGameStore = create<StoreState>((set, get) => ({
 
     // ── setTrainingMode ──
     setTrainingMode: (enabled) => set({ trainingMode: enabled }),
-}));
+        }),
+        {
+            name: "ppa-settings-v1",
+            version: 1,
+            partialize: (state) => ({
+                settings: state.settings,
+                trainingMode: state.trainingMode,
+            }),
+        }
+    )
+);
