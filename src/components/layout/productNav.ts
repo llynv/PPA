@@ -11,4 +11,5 @@ export const PRODUCT_NAV_ITEMS: ProductNavItem[] = [
     { to: "/learn", label: "Learn" },
     { to: "/progress", label: "Progress" },
     { to: "/library", label: "Library" },
+    { to: "/settings", label: "Settings" },
 ];

@@ -8,6 +8,7 @@ import { ReviewPage } from "./pages/ReviewPage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { LearnPage } from "./pages/LearnPage";
+import { SettingsPage } from "./pages/SettingsPage";
 import { useHydration } from "./hooks/useHydration";
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
                 <Route path="learn" element={<LearnPage />} />
                 <Route path="progress" element={<ProgressPage />} />
                 <Route path="library" element={<LibraryPage />} />
+                <Route path="settings" element={<SettingsPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
         </Routes>
