@@ -25,6 +25,15 @@ export function LearnPage() {
                 )}
             </div>
 
+            {practicedCount === 0 && (
+                <div className="rounded-xl border border-neutral-700 bg-neutral-800/50 p-4 text-center">
+                    <p className="text-sm text-neutral-300">
+                        Welcome to your learning path. Complete practice hands or
+                        drills to unlock concepts and advance through the tiers below.
+                    </p>
+                </div>
+            )}
+
             <RecommendedNext recommendation={recommendation} />
 
             <div className="space-y-6">

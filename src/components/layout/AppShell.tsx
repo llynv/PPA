@@ -1,3 +1,4 @@
+import { useEffect, Suspense } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useGameStore } from "../../store/gameStore";
 import { PRODUCT_NAV_ITEMS } from "./productNav";
@@ -24,10 +25,21 @@ export function AppShell() {
         }
     };
 
+    useEffect(() => {
+        document.getElementById("main-content")?.focus();
+    }, [location.pathname]);
+
     return (
         <div
             className="flex flex-col bg-neutral-950 text-neutral-100 h-dvh overflow-hidden"
         >
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-white"
+            >
+                Skip to main content
+            </a>
+
             <nav className="bg-neutral-900 border-b border-neutral-800 px-4 py-3 flex flex-col gap-3 flex-shrink-0 md:flex-row md:items-center md:justify-between">
                 <div className="flex items-center justify-between gap-4">
                     <div>
@@ -94,9 +106,19 @@ export function AppShell() {
             </nav>
 
             <main
-                className={`flex-1 min-h-0 ${isGameView ? "" : "overflow-auto"}`}
+                id="main-content"
+                tabIndex={-1}
+                className={`flex-1 min-h-0 outline-none ${isGameView ? "" : "overflow-auto"}`}
             >
-                <Outlet />
+                <Suspense
+                    fallback={
+                        <div className="flex min-h-[50vh] items-center justify-center">
+                            <div className="h-8 w-8 animate-spin rounded-full border-2 border-neutral-600 border-t-emerald-400" />
+                        </div>
+                    }
+                >
+                    <Outlet />
+                </Suspense>
             </main>
         </div>
     );
