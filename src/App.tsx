@@ -8,8 +8,11 @@ import { ReviewPage } from "./pages/ReviewPage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { LearnPage } from "./pages/LearnPage";
+import { useHydration } from "./hooks/useHydration";
 
 function App() {
+    useHydration();
+
     return (
         <Routes>
             <Route element={<AppShell />}>
