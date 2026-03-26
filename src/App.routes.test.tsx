@@ -212,7 +212,6 @@ describe("App routing shell", () => {
         expect(within(primaryNav).getByRole("link", { name: /^practice$/i })).toBeInTheDocument();
         expect(within(primaryNav).getByRole("link", { name: /^review$/i })).toBeInTheDocument();
         expect(within(primaryNav).getByRole("link", { name: /^progress$/i })).toBeInTheDocument();
-        expect(within(primaryNav).getByRole("link", { name: /^library$/i })).toBeInTheDocument();
     });
 
     it("shows mode selector with Live Table and Spot Drills at /practice", async () => {
@@ -376,5 +375,13 @@ describe("App routing shell", () => {
         renderAt("/learn");
         // Should show some curriculum content
         expect(await screen.findByText(/foundations/i)).toBeInTheDocument();
+    });
+
+    it("redirects unknown routes (including removed /library) to home", async () => {
+        renderAt("/library");
+        expect(
+            await screen.findByRole("heading", { name: /learning-first poker coach/i }),
+        ).toBeInTheDocument();
+        expect(screen.getByTestId("location-probe")).toHaveTextContent("/");
     });
 });
