@@ -1,7 +1,8 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { ActionType, DecisionResult } from "../types/poker";
 import type { DrillSpot, DrillSession, DrillResult, DrillFilters } from "../types/drill";
-import { DRILL_SPOTS } from "../data/drillSpots";
+import { getAllSpots } from "../data/drillPacks";
 import { evaluateDecision } from "../lib/poker-engine/decision";
 import { useProgressStore } from "./progressStore";
 
@@ -11,6 +12,7 @@ interface DrillStore {
   phase: DrillPhase;
   session: DrillSession | null;
   currentResult: DrillResult | null;
+  lastFilters: DrillFilters | null;
 
   startSession: (filters: DrillFilters) => void;
   submitAnswer: (action: ActionType, raiseSize?: number) => void;
@@ -49,88 +51,102 @@ function isCorrectAction(heroAction: ActionType, optimal: DecisionResult): boole
   return heroAction === optimal.optimalAction || freq >= 0.15;
 }
 
-export const useDrillStore = create<DrillStore>((set, get) => ({
-  phase: 'setup',
-  session: null,
-  currentResult: null,
-
-  startSession: (filters) => {
-    const filtered = filterSpots(DRILL_SPOTS, filters);
-    if (filtered.length === 0) return;
-    const queue = shuffleArray(filtered);
-
-    set({
-      phase: 'drilling',
-      session: {
-        allSpots: DRILL_SPOTS,
-        queue,
-        currentIndex: 0,
-        results: [],
-        filters,
-        streak: 0,
-        bestStreak: 0,
-      },
+export const useDrillStore = create<DrillStore>()(
+  persist(
+    (set, get) => ({
+      phase: 'setup' as DrillPhase,
+      session: null,
       currentResult: null,
-    });
-  },
+      lastFilters: null,
 
-  submitAnswer: (action, raiseSize) => {
-    const { session } = get();
-    if (!session || session.currentIndex >= session.queue.length) return;
+      startSession: (filters) => {
+        const allSpots = getAllSpots();
+        const filtered = filterSpots(allSpots, filters);
+        if (filtered.length === 0) return;
+        const queue = shuffleArray(filtered);
 
-    const spot = session.queue[session.currentIndex];
-    const optimalResult = evaluateDecision(spot.decisionContext);
-    const correct = isCorrectAction(action, optimalResult);
-    const heroEv = optimalResult.evByAction[mapToFrequencyKey(action)] ?? 0;
-    const optimalEv = Math.max(optimalResult.evByAction.fold, optimalResult.evByAction.call, optimalResult.evByAction.raise);
-
-    const result: DrillResult = {
-      spotId: spot.id,
-      heroAction: action,
-      heroRaiseSize: raiseSize,
-      isCorrect: correct,
-      // evDelta ≤ 0: how much EV hero left on the table
-      evDelta: heroEv - optimalEv,
-      optimalResult,
-      timestamp: Date.now(),
-    };
-
-    const newStreak = correct ? session.streak + 1 : 0;
-    const newBestStreak = Math.max(session.bestStreak, newStreak);
-
-    set({
-      phase: "feedback",
-      currentResult: result,
-      session: {
-        ...session,
-        results: [...session.results, result],
-        streak: newStreak,
-        bestStreak: newBestStreak,
+        set({
+          phase: 'drilling',
+          session: {
+            allSpots,
+            queue,
+            currentIndex: 0,
+            results: [],
+            filters,
+            streak: 0,
+            bestStreak: 0,
+          },
+          currentResult: null,
+          lastFilters: filters,
+        });
       },
-    });
-    useProgressStore.getState().recordDrillAttempt(result, spot);
-  },
 
-  nextSpot: () => {
-    const { session } = get();
-    if (!session) return;
+      submitAnswer: (action, raiseSize) => {
+        const { session } = get();
+        if (!session || session.currentIndex >= session.queue.length) return;
 
-    const nextIndex = session.currentIndex + 1;
-    if (nextIndex >= session.queue.length) {
-      if (session) {
-        useProgressStore.getState().recordDrillSession(session);
-      }
-      set({ phase: "summary", currentResult: null });
-    } else {
-      set({
-        phase: 'drilling',
-        currentResult: null,
-        session: { ...session, currentIndex: nextIndex },
-      });
+        const spot = session.queue[session.currentIndex];
+        const optimalResult = evaluateDecision(spot.decisionContext);
+        const correct = isCorrectAction(action, optimalResult);
+        const heroEv = optimalResult.evByAction[mapToFrequencyKey(action)] ?? 0;
+        const optimalEv = Math.max(optimalResult.evByAction.fold, optimalResult.evByAction.call, optimalResult.evByAction.raise);
+
+        const result: DrillResult = {
+          spotId: spot.id,
+          heroAction: action,
+          heroRaiseSize: raiseSize,
+          isCorrect: correct,
+          // evDelta ≤ 0: how much EV hero left on the table
+          evDelta: heroEv - optimalEv,
+          optimalResult,
+          timestamp: Date.now(),
+        };
+
+        const newStreak = correct ? session.streak + 1 : 0;
+        const newBestStreak = Math.max(session.bestStreak, newStreak);
+
+        set({
+          phase: "feedback",
+          currentResult: result,
+          session: {
+            ...session,
+            results: [...session.results, result],
+            streak: newStreak,
+            bestStreak: newBestStreak,
+          },
+        });
+        useProgressStore.getState().recordDrillAttempt(result, spot);
+      },
+
+      nextSpot: () => {
+        const { session } = get();
+        if (!session) return;
+
+        const nextIndex = session.currentIndex + 1;
+        if (nextIndex >= session.queue.length) {
+          if (session) {
+            useProgressStore.getState().recordDrillSession(session);
+          }
+          set({ phase: "summary", currentResult: null });
+        } else {
+          set({
+            phase: 'drilling',
+            currentResult: null,
+            session: { ...session, currentIndex: nextIndex },
+          });
+        }
+      },
+
+      resetSession: () => {
+        set({ phase: 'setup', session: null, currentResult: null });
+      },
+    }),
+    {
+      name: "ppa-drill-v1",
+      version: 1,
+      partialize: (state) => ({
+        lastFilters: state.lastFilters,
+      }),
     }
-  },
-
-  resetSession: () => {
-    set({ phase: 'setup', session: null, currentResult: null });
-  },
-}));
+  )
+);

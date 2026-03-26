@@ -5,7 +5,7 @@ import type { ActionType } from '../../types/poker';
 
 describe('drillStore', () => {
   beforeEach(() => {
-    useDrillStore.getState().resetSession();
+    useDrillStore.setState({ phase: 'setup', session: null, currentResult: null, lastFilters: null });
   });
 
   it('starts with null session in setup phase', () => {
@@ -111,5 +111,25 @@ describe('drillStore', () => {
     const state = useDrillStore.getState();
     expect(state.phase).toBe('setup');
     expect(state.session).toBeNull();
+  });
+
+  describe("lastFilters", () => {
+    it("starts with null lastFilters", () => {
+      expect(useDrillStore.getState().lastFilters).toBeNull();
+    });
+
+    it("saves filters when a session starts", () => {
+      useDrillStore.getState().startSession({
+        categories: ["preflop"],
+        difficulties: [1],
+        concepts: [],
+      });
+      const lastFilters = useDrillStore.getState().lastFilters;
+      expect(lastFilters).toEqual({
+        categories: ["preflop"],
+        difficulties: [1],
+        concepts: [],
+      });
+    });
   });
 });
