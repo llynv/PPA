@@ -1,7 +1,16 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, vi } from "vitest";
+import { loadAttempts, saveAttempts, clearAttempts } from "../../lib/persistence";
+import { createEmptyMastery } from "../../lib/progress";
 import { useProgressStore } from "../progressStore";
 import type { AnalysisData } from "../../types/poker";
 import type { DrillResult, DrillSpot, DrillSession } from "../../types/drill";
+
+vi.mock("../../lib/persistence", () => ({
+    loadAttempts: vi.fn(() => Promise.resolve([])),
+    saveAttempts: vi.fn(() => Promise.resolve()),
+    clearAttempts: vi.fn(() => Promise.resolve()),
+    ATTEMPTS_KEY: "ppa-attempts-v1",
+}));
 
 // ── Helpers ────────────────────────────────────────────────────────
 
@@ -530,5 +539,182 @@ describe("progressStore", () => {
         const correctAttempt = state.attempts.find((a) => a.isCorrect);
         expect(correctAttempt).toBeDefined();
         expect(correctAttempt!.concept).toBe("check_call"); // inferLiveHandConcept for call
+    });
+});
+
+describe("hydration", () => {
+    beforeEach(() => {
+        useProgressStore.setState({
+            conceptMastery: {},
+            sessions: [],
+            attempts: [],
+            overallStats: {
+                totalHands: 0,
+                totalDrills: 0,
+                overallAccuracy: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                averageGrade: "C",
+            },
+            isHydrated: false,
+        });
+    });
+
+    it("starts with isHydrated = false", () => {
+        expect(useProgressStore.getState().isHydrated).toBe(false);
+    });
+
+    it("hydrate loads attempts from IndexedDB and sets isHydrated", async () => {
+        const storedAttempts = [
+            { id: "stored-1", source: "drill" as const, concept: "cbet_value", isCorrect: true, evDelta: 0, timestamp: 1000 },
+        ];
+        vi.mocked(loadAttempts).mockResolvedValueOnce(storedAttempts);
+        await useProgressStore.getState().hydrate();
+        const state = useProgressStore.getState();
+        expect(state.isHydrated).toBe(true);
+        expect(state.attempts).toEqual(storedAttempts);
+    });
+});
+
+describe("rebuildMastery", () => {
+    beforeEach(() => {
+        useProgressStore.setState({
+            conceptMastery: {},
+            sessions: [],
+            attempts: [],
+            overallStats: {
+                totalHands: 0,
+                totalDrills: 0,
+                overallAccuracy: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                averageGrade: "C",
+            },
+            isHydrated: false,
+        });
+    });
+
+    it("reconstructs conceptMastery from raw attempts", () => {
+        const { recordDrillAttempt } = useProgressStore.getState();
+        const spot = mockDrillSpot({ concept: "cbet_value" });
+
+        recordDrillAttempt(mockDrillResult({ isCorrect: true, evDelta: 0 }), spot);
+        recordDrillAttempt(mockDrillResult({ isCorrect: true, evDelta: 0 }), spot);
+        recordDrillAttempt(mockDrillResult({ isCorrect: true, evDelta: 0 }), spot);
+        recordDrillAttempt(mockDrillResult({ isCorrect: false, evDelta: 0 }), spot);
+
+        // Manually corrupt mastery
+        useProgressStore.setState({
+            conceptMastery: { cbet_value: { ...createEmptyMastery("cbet_value"), totalAttempts: 999 } },
+        });
+
+        useProgressStore.getState().rebuildMastery();
+
+        const mastery = useProgressStore.getState().conceptMastery["cbet_value"];
+        expect(mastery).toBeDefined();
+        expect(mastery!.totalAttempts).toBe(4);
+        expect(mastery!.correctAttempts).toBe(3);
+        expect(mastery!.accuracy).toBeCloseTo(0.75);
+    });
+});
+
+describe("exportData / importData", () => {
+    beforeEach(() => {
+        useProgressStore.setState({
+            conceptMastery: {},
+            sessions: [],
+            attempts: [],
+            overallStats: {
+                totalHands: 0,
+                totalDrills: 0,
+                overallAccuracy: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                averageGrade: "C",
+            },
+            isHydrated: false,
+        });
+    });
+
+    it("exports all data as JSON string", async () => {
+        const { recordDrillAttempt } = useProgressStore.getState();
+        recordDrillAttempt(mockDrillResult(), mockDrillSpot());
+        const json = await useProgressStore.getState().exportData();
+        const parsed = JSON.parse(json);
+        expect(parsed.version).toBe(1);
+        expect(parsed.app).toBe("ppa");
+        expect(parsed.data.attempts.length).toBe(1);
+        expect(parsed.data.conceptMastery).toBeDefined();
+        expect(parsed.data.overallStats).toBeDefined();
+        expect(parsed.data.sessions).toBeDefined();
+    });
+
+    it("importData restores state and rebuilds mastery", async () => {
+        const exportJson = JSON.stringify({
+            version: 1,
+            app: "ppa",
+            exportedAt: new Date().toISOString(),
+            data: {
+                attempts: [
+                    { id: "imp-1", source: "drill", concept: "open_raise", isCorrect: true, evDelta: 0, timestamp: 500 },
+                    { id: "imp-2", source: "drill", concept: "open_raise", isCorrect: false, evDelta: -1, timestamp: 600 },
+                ],
+                conceptMastery: {},
+                sessions: [],
+                overallStats: {
+                    totalHands: 0,
+                    totalDrills: 2,
+                    overallAccuracy: 0.5,
+                    currentStreak: 0,
+                    bestStreak: 1,
+                    averageGrade: "C",
+                },
+            },
+        });
+        await useProgressStore.getState().importData(exportJson);
+        const state = useProgressStore.getState();
+        expect(state.attempts.length).toBe(2);
+        expect(state.conceptMastery["open_raise"]).toBeDefined();
+        expect(state.conceptMastery["open_raise"]!.totalAttempts).toBe(2);
+    });
+
+    it("importData rejects invalid JSON", async () => {
+        await expect(useProgressStore.getState().importData("not json")).rejects.toThrow();
+    });
+
+    it("importData rejects wrong app field", async () => {
+        const bad = JSON.stringify({ version: 1, app: "wrong", data: {} });
+        await expect(useProgressStore.getState().importData(bad)).rejects.toThrow("Invalid backup file");
+    });
+});
+
+describe("clearAllData", () => {
+    beforeEach(() => {
+        useProgressStore.setState({
+            conceptMastery: {},
+            sessions: [],
+            attempts: [],
+            overallStats: {
+                totalHands: 0,
+                totalDrills: 0,
+                overallAccuracy: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                averageGrade: "C",
+            },
+            isHydrated: false,
+        });
+    });
+
+    it("resets all state and clears IndexedDB", async () => {
+        const { recordDrillAttempt } = useProgressStore.getState();
+        recordDrillAttempt(mockDrillResult(), mockDrillSpot());
+        await useProgressStore.getState().clearAllData();
+        const state = useProgressStore.getState();
+        expect(state.attempts).toEqual([]);
+        expect(state.conceptMastery).toEqual({});
+        expect(state.sessions).toEqual([]);
+        expect(state.overallStats.totalDrills).toBe(0);
+        expect(clearAttempts).toHaveBeenCalled();
     });
 });

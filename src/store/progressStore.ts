@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 import type { HeroGrade, AnalysisData, Decision } from "../types/poker";
 import type { DrillResult, DrillSession, DrillSpot } from "../types/drill";
 import type {
@@ -9,6 +10,7 @@ import type {
     MasteryLevel,
 } from "../types/progress";
 import { computeMasteryLevel, computeRecentAccuracy, createEmptyMastery } from "../lib/progress";
+import { loadAttempts, saveAttempts, clearAttempts } from "../lib/persistence";
 
 // ── Grade ↔ Numeric Conversion ─────────────────────────────────────
 
@@ -55,6 +57,9 @@ interface ProgressStore {
     attempts: AttemptRecord[];
     overallStats: OverallStats;
 
+    // NEW: Hydration state
+    isHydrated: boolean;
+
     // Record actions
     recordLiveHand: (analysis: AnalysisData) => void;
     recordDrillAttempt: (result: DrillResult, spot: DrillSpot) => void;
@@ -65,11 +70,20 @@ interface ProgressStore {
     getStrongestConcepts: (n: number) => ConceptMastery[];
     getRecentSessions: (n: number) => SessionSummary[];
     getMasteryDistribution: () => Record<MasteryLevel, number>;
+
+    // NEW: persistence actions
+    hydrate: () => Promise<void>;
+    rebuildMastery: () => void;
+    exportData: () => Promise<string>;
+    importData: (json: string) => Promise<void>;
+    clearAllData: () => Promise<void>;
 }
 
 // ── Store Implementation ───────────────────────────────────────────
 
-export const useProgressStore = create<ProgressStore>((set, get) => ({
+export const useProgressStore = create<ProgressStore>()(
+    persist(
+        (set, get) => ({
     conceptMastery: {},
     sessions: [],
     attempts: [],
@@ -81,6 +95,9 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
         bestStreak: 0,
         averageGrade: "C",
     },
+
+    // NEW initial field
+    isHydrated: false,
 
     recordLiveHand: (analysis) => {
         const state = get();
@@ -194,6 +211,9 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
                 bestStreak,
             },
         });
+
+        // Fire-and-forget save to IndexedDB
+        saveAttempts(get().attempts).catch(() => {});
     },
 
     recordDrillAttempt: (result, spot) => {
@@ -243,6 +263,9 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
                 bestStreak,
             },
         });
+
+        // Fire-and-forget save to IndexedDB
+        saveAttempts(get().attempts).catch(() => {});
     },
 
     recordDrillSession: (session) => {
@@ -327,7 +350,170 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
         }
         return dist;
     },
-}));
+
+    // ── Persistence Actions ────────────────────────────────────────
+
+    hydrate: async () => {
+        const attempts = await loadAttempts();
+        set({ attempts, isHydrated: true });
+    },
+
+    rebuildMastery: () => {
+        const state = get();
+        const sorted = [...state.attempts].sort((a, b) => a.timestamp - b.timestamp);
+
+        const conceptMastery: Record<string, ConceptMastery> = {};
+        let totalHands = 0;
+        let totalDrills = 0;
+        let currentStreak = 0;
+        let bestStreak = 0;
+        let totalCorrect = 0;
+        let totalAttemptCount = 0;
+        let gradeSum = 0;
+        let gradeCount = 0;
+
+        const seenLiveHands = new Set<number>();
+
+        for (const attempt of sorted) {
+            const concept = attempt.concept;
+            if (!conceptMastery[concept]) {
+                conceptMastery[concept] = createEmptyMastery(concept);
+            }
+            const mastery = conceptMastery[concept];
+
+            mastery.totalAttempts++;
+            if (attempt.isCorrect) {
+                mastery.correctAttempts++;
+            }
+            mastery.accuracy = mastery.correctAttempts / mastery.totalAttempts;
+
+            if (attempt.isCorrect) {
+                mastery.streak++;
+            } else {
+                mastery.streak = 0;
+            }
+            mastery.bestStreak = Math.max(mastery.bestStreak, mastery.streak);
+
+            mastery.totalEvDelta += attempt.evDelta;
+            mastery.lastAttemptAt = attempt.timestamp;
+
+            // Track overall stats
+            if (attempt.source === "drill") {
+                totalDrills++;
+            } else if (attempt.source === "live") {
+                if (!seenLiveHands.has(attempt.timestamp)) {
+                    seenLiveHands.add(attempt.timestamp);
+                    totalHands++;
+                }
+            }
+
+            totalAttemptCount++;
+            if (attempt.isCorrect) {
+                totalCorrect++;
+                currentStreak++;
+                bestStreak = Math.max(bestStreak, currentStreak);
+            } else {
+                currentStreak = 0;
+            }
+
+            if (attempt.grade) {
+                gradeSum += GRADE_VALUES[attempt.grade] ?? 0;
+                gradeCount++;
+            }
+        }
+
+        // Compute recentAccuracy and level for each concept
+        for (const concept of Object.keys(conceptMastery)) {
+            conceptMastery[concept].recentAccuracy = computeRecentAccuracy(sorted, concept);
+            conceptMastery[concept].level = computeMasteryLevel(conceptMastery[concept]);
+        }
+
+        const overallAccuracy = totalAttemptCount > 0 ? totalCorrect / totalAttemptCount : 0;
+        const averageGrade = gradeCount > 0 ? numericToGrade(gradeSum / gradeCount) : "C";
+
+        set({
+            conceptMastery,
+            overallStats: {
+                totalHands,
+                totalDrills,
+                overallAccuracy,
+                currentStreak,
+                bestStreak,
+                averageGrade,
+            },
+        });
+    },
+
+    exportData: async () => {
+        const state = get();
+        const exportObj = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            app: "ppa",
+            data: {
+                conceptMastery: state.conceptMastery,
+                sessions: state.sessions,
+                overallStats: state.overallStats,
+                attempts: state.attempts,
+            },
+        };
+        return JSON.stringify(exportObj, null, 2);
+    },
+
+    importData: async (json: string) => {
+        let parsed: unknown;
+        try {
+            parsed = JSON.parse(json);
+        } catch {
+            throw new Error("Invalid JSON format");
+        }
+        const obj = parsed as Record<string, unknown>;
+        if (obj.app !== "ppa") {
+            throw new Error("Invalid backup file");
+        }
+        const data = obj.data as Record<string, unknown>;
+        if (!data || !Array.isArray(data.attempts)) {
+            throw new Error("Invalid backup file: missing attempts");
+        }
+        const attempts = data.attempts as AttemptRecord[];
+        const sessions = (data.sessions ?? []) as SessionSummary[];
+        const overallStats = (data.overallStats ?? get().overallStats) as OverallStats;
+
+        await saveAttempts(attempts);
+        set({ attempts, sessions, overallStats, conceptMastery: {} });
+        get().rebuildMastery();
+    },
+
+    clearAllData: async () => {
+        await clearAttempts();
+        set({
+            conceptMastery: {},
+            sessions: [],
+            attempts: [],
+            overallStats: {
+                totalHands: 0,
+                totalDrills: 0,
+                overallAccuracy: 0,
+                currentStreak: 0,
+                bestStreak: 0,
+                averageGrade: "C",
+            },
+            isHydrated: false,
+        });
+    },
+        }),
+        {
+            name: "ppa-progress-v1",
+            version: 1,
+            partialize: (state) => ({
+                conceptMastery: state.conceptMastery,
+                sessions: state.sessions,
+                overallStats: state.overallStats,
+                // NOTE: attempts are NOT persisted to localStorage — they go to IndexedDB
+            }),
+        }
+    )
+);
 
 // ── Internal Helper ────────────────────────────────────────────────
 
