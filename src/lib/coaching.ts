@@ -17,8 +17,8 @@ import type { DrillSpot, DrillResult, DrillConcept } from "../types/drill";
 import { CONCEPT_LABELS } from "./concept-labels";
 import { CURRICULUM } from "../data/curriculum";
 import { isTierUnlocked } from "./learning-path";
-import { MISTAKE_TO_DRILL_CONCEPT } from "./mistake-mappings";
-import { classifyMistake } from "./analysis";
+import { MISTAKE_TO_DRILL_CONCEPT, MISTAKE_TYPE_LABELS } from "./mistake-mappings";
+import { classifyMistake } from "./mistake-classifier";
 
 // ── Coaching Depth ──────────────────────────────────────────────────
 
@@ -480,17 +480,3 @@ export function generateSessionDebrief(
     };
 }
 
-// ── Mistake Type Labels (local) ─────────────────────────────────────
-
-const MISTAKE_TYPE_LABELS: Record<MistakeType, string> = {
-    OVERFOLD: "Overfolding",
-    OVERCALL: "Overcalling",
-    MISSED_VALUE_BET: "Missed value bets",
-    MISSED_CBET: "Missed c-bets",
-    BAD_SIZING_OVER: "Oversized bets",
-    BAD_SIZING_UNDER: "Undersized bets",
-    CALLING_WITHOUT_ODDS: "Calling without odds",
-    BLUFF_WRONG_SPOT: "Bad bluff spots",
-    MISSED_DRAW_PLAY: "Passive draw play",
-    PASSIVE_WITH_EQUITY: "Too passive with equity",
-};
