@@ -67,7 +67,7 @@ export function suitColor4(suit: Suit): "black" | "red" | "blue" | "green" {
 
 // ── Card helpers ────────────────────────────────────────────────────
 
-const RANK_VALUES: Record<Rank, number> = {
+export const RANK_VALUES: Record<Rank, number> = {
     "2": 2,
     "3": 3,
     "4": 4,

@@ -1,28 +1,6 @@
-import type { Card, Rank, HandEvaluation } from "../types/poker";
+import type { Card, HandEvaluation } from "../types/poker";
 import { HandRank } from "../types/poker";
-
-// ── Local Helpers ───────────────────────────────────────────────────
-
-const RANK_VALUE_MAP: Record<Rank, number> = {
-    "2": 2,
-    "3": 3,
-    "4": 4,
-    "5": 5,
-    "6": 6,
-    "7": 7,
-    "8": 8,
-    "9": 9,
-    "10": 10,
-    J: 11,
-    Q: 12,
-    K: 13,
-    A: 14,
-};
-
-/** Returns numeric value for a rank: 2–14 (A = 14). */
-function getRankValue(rank: Rank): number {
-    return RANK_VALUE_MAP[rank];
-}
+import { RANK_VALUES } from "./deck";
 
 // ── Hand Description ────────────────────────────────────────────────
 
@@ -80,7 +58,7 @@ interface FiveCardResult {
  * values for comparison within the same rank category.
  */
 function evaluateFiveCards(cards: Card[]): FiveCardResult {
-    const values = cards.map((c) => getRankValue(c.rank)).sort((a, b) => b - a);
+    const values = cards.map((c) => RANK_VALUES[c.rank]).sort((a, b) => b - a);
     const suits = cards.map((c) => c.suit);
 
     // Count occurrences of each rank value
