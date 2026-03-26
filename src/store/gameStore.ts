@@ -633,10 +633,13 @@ export const useGameStore = create<StoreState>()(
     // ── advanceRound ──
     advanceRound: () => {
         const state = get();
-        const { currentRound, deck, dealerIndex, players } = state;
+        let { currentRound, deck, players } = state;
+        const { dealerIndex } = state;
 
         // Reset all players' currentBet to 0
-        const updatedPlayers = players.map((p) => ({ ...p, currentBet: 0 }));
+        let updatedPlayers = players.map((p) => ({ ...p, currentBet: 0 }));
+        let communityCards = [...state.communityCards];
+        let remainingDeck = deck;
 
         const nextRound: Record<string, BettingRound> = {
             preflop: "flop",
@@ -644,62 +647,64 @@ export const useGameStore = create<StoreState>()(
             turn: "river",
         };
 
-        const upcoming = nextRound[currentRound];
+        // Loop: deal cards for each round until an active player can act or we hit showdown
+        let keepDealing = true;
+        while (keepDealing) {
+            const upcoming = nextRound[currentRound];
 
-        // If we're at river, go to showdown
-        if (!upcoming || currentRound === "river") {
-            set({ players: updatedPlayers });
-            get().resolveShowdown();
-            return;
-        }
-
-        // Deal community cards
-        let newCommunityCards = [...state.communityCards];
-        let remainingDeck = deck;
-
-        if (upcoming === "flop") {
-            const result = dealCards(remainingDeck, 3);
-            newCommunityCards = [...newCommunityCards, ...result.dealt];
-            remainingDeck = result.remaining;
-        } else {
-            // Turn or river: deal 1 card
-            const result = dealCards(remainingDeck, 1);
-            newCommunityCards = [...newCommunityCards, ...result.dealt];
-            remainingDeck = result.remaining;
-        }
-
-        // First active player after dealer (postflop order)
-        const numPlayers = updatedPlayers.length;
-        let firstActive = -1;
-        for (let i = 1; i <= numPlayers; i++) {
-            const idx = (dealerIndex + i) % numPlayers;
-            if (!updatedPlayers[idx].isFolded && !updatedPlayers[idx].isAllIn) {
-                firstActive = idx;
-                break;
+            // At river or no next round → showdown
+            if (!upcoming || currentRound === "river") {
+                set({
+                    players: updatedPlayers,
+                    deck: remainingDeck,
+                    communityCards,
+                    currentRound,
+                });
+                get().resolveShowdown();
+                return;
             }
-        }
 
-        // If no active player found (all all-in or folded), we need to keep dealing
-        if (firstActive === -1) {
-            // All remaining players are all-in — run out the board
-            set({
-                players: updatedPlayers,
-                deck: remainingDeck,
-                communityCards: newCommunityCards,
-                currentRound: upcoming,
-            });
-            // Continue advancing rounds until showdown
-            get().advanceRound();
-            return;
-        }
+            // Burn one card
+            const burnResult = dealCards(remainingDeck, 1);
+            remainingDeck = burnResult.remaining;
 
-        set({
-            players: updatedPlayers,
-            deck: remainingDeck,
-            communityCards: newCommunityCards,
-            currentRound: upcoming,
-            activePlayerIndex: firstActive,
-        });
+            // Deal community cards
+            if (upcoming === "flop") {
+                const result = dealCards(remainingDeck, 3);
+                communityCards = [...communityCards, ...result.dealt];
+                remainingDeck = result.remaining;
+            } else {
+                const result = dealCards(remainingDeck, 1);
+                communityCards = [...communityCards, ...result.dealt];
+                remainingDeck = result.remaining;
+            }
+
+            currentRound = upcoming;
+
+            // Find first active (non-folded, non-all-in) player after dealer
+            const numPlayers = updatedPlayers.length;
+            let firstActive = -1;
+            for (let i = 1; i <= numPlayers; i++) {
+                const idx = (dealerIndex + i) % numPlayers;
+                if (!updatedPlayers[idx].isFolded && !updatedPlayers[idx].isAllIn) {
+                    firstActive = idx;
+                    break;
+                }
+            }
+
+            if (firstActive !== -1) {
+                // Found an active player — stop dealing, let them act
+                set({
+                    players: updatedPlayers,
+                    deck: remainingDeck,
+                    communityCards,
+                    currentRound,
+                    activePlayerIndex: firstActive,
+                });
+                keepDealing = false;
+            }
+            // else: no active player → continue loop to deal next street
+        }
     },
 
     // ── resolveShowdown ──
