@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { SpotCategory, DrillFilters, DrillConcept } from "../../types/drill";
-import { DRILL_SPOTS } from "../../data/drillSpots";
+import { getAllSpots } from "../../data/drillPacks";
 import { useDrillStore } from "../../store/drillStore";
 import { CURRICULUM } from "../../data/curriculum";
 import { CONCEPT_LABELS } from "../../lib/concept-labels";
@@ -25,9 +25,16 @@ function toggleInArray<T>(arr: T[], item: T): T[] {
 }
 
 export function DrillSetup() {
-  const [selectedCategories, setSelectedCategories] = useState<SpotCategory[]>([]);
-  const [selectedDifficulties, setSelectedDifficulties] = useState<(1 | 2 | 3)[]>([]);
-  const [selectedConcepts, setSelectedConcepts] = useState<DrillConcept[]>([]);
+  const lastFilters = useDrillStore((s) => s.lastFilters);
+  const [selectedCategories, setSelectedCategories] = useState<SpotCategory[]>(
+    lastFilters?.categories ?? []
+  );
+  const [selectedDifficulties, setSelectedDifficulties] = useState<(1 | 2 | 3)[]>(
+    lastFilters?.difficulties ?? []
+  );
+  const [selectedConcepts, setSelectedConcepts] = useState<DrillConcept[]>(
+    lastFilters?.concepts ?? []
+  );
   const startSession = useDrillStore((s) => s.startSession);
 
   const [searchParams] = useSearchParams();
@@ -47,14 +54,15 @@ export function DrillSetup() {
     }
   }, [conceptParam]);
 
+  const allSpots = useMemo(() => getAllSpots(), []);
   const matchingCount = useMemo(() => {
-    return DRILL_SPOTS.filter((s) => {
+    return allSpots.filter((s) => {
       if (selectedCategories.length > 0 && !selectedCategories.includes(s.category)) return false;
       if (selectedDifficulties.length > 0 && !selectedDifficulties.includes(s.difficulty)) return false;
       if (selectedConcepts.length > 0 && !selectedConcepts.includes(s.concept)) return false;
       return true;
     }).length;
-  }, [selectedCategories, selectedDifficulties, selectedConcepts]);
+  }, [allSpots, selectedCategories, selectedDifficulties, selectedConcepts]);
 
   const handleStart = () => {
     const filters: DrillFilters = {
