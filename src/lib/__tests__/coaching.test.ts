@@ -8,7 +8,6 @@ import {
     generateSessionDebrief,
     getRecommendation,
 } from "../coaching";
-import type { MasteryLevel } from "../../types/progress";
 import type {
     CoachingContext,
     BettingRound,
@@ -18,7 +17,7 @@ import type {
     MistakeType,
     AnalysisData,
 } from "../../types/poker";
-import type { SessionSummary, ConceptMastery } from "../../types/progress";
+import type { ConceptMastery } from "../../types/progress";
 import type { DrillSpot, DrillResult } from "../../types/drill";
 
 // ── coachingDepthForMastery ─────────────────────────────────────────

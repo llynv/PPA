@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { loadAttempts, saveAttempts, clearAttempts } from "../../lib/persistence";
+import { loadAttempts, clearAttempts } from "../../lib/persistence";
 import { createEmptyMastery } from "../../lib/progress";
 import { useProgressStore } from "../progressStore";
 import type { AnalysisData } from "../../types/poker";

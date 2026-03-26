@@ -8,7 +8,6 @@ const ROUND_LABELS: Record<BettingRound, string> = {
     flop: "Flop",
     turn: "Turn",
     river: "River",
-    showdown: "Showdown",
 };
 
 // ── Empty Card Slot ─────────────────────────────────────────────────
