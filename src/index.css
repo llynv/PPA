@@ -34,8 +34,3 @@ body {
   background-color: var(--sd-bg);
   color: var(--sd-ivory);
 }
-
-/* Legacy class kept for transient references until PokerTable is fully replaced */
-.poker-table-bg {
-  background-color: var(--sd-bg);
-}

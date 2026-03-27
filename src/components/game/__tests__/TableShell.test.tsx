@@ -5,7 +5,7 @@ import { TableShell } from "../TableShell";
 import { useGameStore } from "../../../store/gameStore";
 
 /**
- * Wraps component with MemoryRouter since PokerTable's children
+ * Wraps component with MemoryRouter since TableShell's children
  * (ShowdownOverlay) may use routing-dependent features.
  */
 function renderInRouter(ui: React.ReactElement) {
@@ -115,13 +115,13 @@ describe("TableShell", () => {
         expect(within(topBar).getByText("5/10")).toBeInTheDocument();
     });
 
-    it("renders the PokerTable content area", () => {
+    it("renders the table stage content area", () => {
         setPlayingState();
         renderInRouter(<TableShell />);
 
-        // PokerTable renders player seats — verify a player name appears
+        // SeatRing renders player seats — verify a player name appears
         expect(screen.getByText("Hero")).toBeInTheDocument();
-        // PokerTable renders BoardCenter with the pot amount
+        // BoardCenter renders the pot amount
         expect(screen.getByText(/Pot:/)).toBeInTheDocument();
     });
 
