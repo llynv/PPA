@@ -1,9 +1,7 @@
 import { useGameStore } from "../../store/gameStore";
 import { PlayerProfile } from "./PlayerProfile";
-import { CommunityCards } from "./CommunityCards";
-import { PotDisplay } from "./PotDisplay";
 import { ActionControls } from "./ActionControls";
-import { ActionToast } from "./ActionToast";
+import { BoardCenter } from "./BoardCenter";
 import { TableHUD } from "./TableHUD";
 import { HintPanel } from "./HintPanel";
 
@@ -333,9 +331,6 @@ function TableWatermark() {
 
 export function PokerTable() {
     const players = useGameStore((s) => s.players);
-    const communityCards = useGameStore((s) => s.communityCards);
-    const pot = useGameStore((s) => s.pot);
-    const currentRound = useGameStore((s) => s.currentRound);
     const activePlayerIndex = useGameStore((s) => s.activePlayerIndex);
     const dealerIndex = useGameStore((s) => s.dealerIndex);
     const gamePhase = useGameStore((s) => s.gamePhase);
@@ -373,18 +368,11 @@ export function PokerTable() {
 
                             <TableWatermark />
 
-                            {/* Center content: pot + community cards + HUD */}
+                            {/* Center content: pot + community cards + activity ribbon + HUD */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 md:gap-2 z-10">
-                                <PotDisplay pot={pot} />
-                                <CommunityCards
-                                    cards={communityCards}
-                                    round={currentRound}
-                                />
+                                <BoardCenter />
                                 <TableHUD />
                             </div>
-
-                            {/* AI action toast */}
-                            <ActionToast />
                         </div>
                     </div>
 

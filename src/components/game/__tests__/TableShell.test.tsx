@@ -121,7 +121,7 @@ describe("TableShell", () => {
 
         // PokerTable renders player seats — verify a player name appears
         expect(screen.getByText("Hero")).toBeInTheDocument();
-        // PokerTable renders PotDisplay with the pot amount
+        // PokerTable renders BoardCenter with the pot amount
         expect(screen.getByText(/Pot:/)).toBeInTheDocument();
     });
 
