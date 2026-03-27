@@ -85,7 +85,7 @@ describe("ShowdownOverlay", () => {
 
         render(<ShowdownOverlay />);
 
-        const btn = screen.getByRole("button", { name: /view analysis/i });
+        const btn = screen.getByRole("button", { name: /view.*analysis/i });
         fireEvent.click(btn);
 
         expect(viewAnalysisSpy).toHaveBeenCalledOnce();

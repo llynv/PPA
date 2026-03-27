@@ -47,12 +47,11 @@ export function ShowdownOverlay() {
                     <div className="flex gap-3">
                         <button
                             onClick={viewAnalysis}
-                            className="px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                            aria-label="View hand analysis"
+                            className="px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-[var(--sd-brass)] focus-visible:outline-none"
                             style={{
                                 backgroundColor: "var(--sd-brass)",
                                 color: "#000",
-                                // @ts-expect-error CSS custom property for focus ring
-                                "--tw-ring-color": "var(--sd-brass)",
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.backgroundColor = "var(--sd-brass-muted)";
@@ -65,13 +64,12 @@ export function ShowdownOverlay() {
                         </button>
                         <button
                             onClick={handleNextHand}
-                            className="px-5 py-2.5 rounded-lg font-medium transition-colors border focus-visible:ring-2 focus-visible:outline-none"
+                            aria-label="Deal next hand"
+                            className="px-5 py-2.5 rounded-lg font-medium transition-colors border focus-visible:ring-2 focus-visible:ring-[var(--sd-brass)] focus-visible:outline-none"
                             style={{
                                 backgroundColor: "transparent",
                                 borderColor: "var(--sd-rail-highlight)",
                                 color: "var(--sd-ivory)",
-                                // @ts-expect-error CSS custom property for focus ring
-                                "--tw-ring-color": "var(--sd-brass)",
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.backgroundColor = "var(--sd-surface)";
