@@ -1,29 +1,41 @@
 @import "tailwindcss";
 
+:root {
+  --sd-bg: #121214;
+  --sd-surface: #1c1c20;
+  --sd-felt: #1a3a2a;
+  --sd-felt-edge: #0f2a1e;
+  --sd-rail: #2a2a2e;
+  --sd-rail-highlight: #3a3a3e;
+  --sd-smoke: rgba(255, 255, 255, 0.06);
+  --sd-brass: #c9a94e;
+  --sd-brass-muted: #a08838;
+  --sd-ivory: #f5f0e8;
+  --sd-fold: #dc4a4a;
+  --sd-check: #4adc7a;
+  --sd-raise: #4a9adc;
+  --sd-allin: #dc8a4a;
+
+  --sd-font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --sd-font-display: "Space Grotesk", system-ui, sans-serif;
+  --sd-font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  font-family: var(--sd-font-body);
+}
+
 html,
 body,
 #root {
-    height: 100%;
-    margin: 0;
+  height: 100%;
+  margin: 0;
 }
 
 body {
-    background-color: #0a0a0a; /* neutral-950 */
-    color: #f5f5f5; /* neutral-100 */
+  background-color: var(--sd-bg);
+  color: var(--sd-ivory);
 }
 
-/* Dark grid background pattern for the poker table view */
+/* Legacy class kept for transient references until PokerTable is fully replaced */
 .poker-table-bg {
-    background-color: #0a0a0a;
-    background-image:
-        linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
-}
-
-/* Updated PotDisplay styling for the new theme */
-.pot-display {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 9999px;
-    padding: 4px 16px;
+  background-color: var(--sd-bg);
 }

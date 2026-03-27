@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { PokerTable } from "../components/game/PokerTable";
+import { TableShell } from "../components/game/TableShell";
 import { GameSettings } from "../components/settings/GameSettings";
 import { useGameStore } from "../store/gameStore";
 
@@ -11,7 +11,7 @@ export function LiveTablePage() {
     }
 
     if (gamePhase === "playing" || gamePhase === "showdown") {
-        return <PokerTable />;
+        return <TableShell />;
     }
 
     return <Navigate to="/review" replace />;
