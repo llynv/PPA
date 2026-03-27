@@ -17,14 +17,29 @@ export function ShowdownOverlay() {
 
     return (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-3">
-            <div className="bg-black/80 backdrop-blur-sm rounded-xl border border-neutral-700 px-4 py-3 md:px-6 md:py-4">
+            <div
+                className="backdrop-blur-sm rounded-xl border px-4 py-3 md:px-6 md:py-4"
+                style={{
+                    backgroundColor: "color-mix(in srgb, var(--sd-surface) 80%, transparent)",
+                    borderColor: "var(--sd-rail-highlight)",
+                }}
+            >
                 <div className="flex flex-col items-center gap-3">
                     <div className="text-center">
-                        <p className="text-emerald-400 font-bold text-base md:text-lg">
+                        <p
+                            className="font-bold text-base md:text-lg"
+                            style={{
+                                color: "var(--sd-brass)",
+                                fontFamily: "var(--sd-font-display)",
+                            }}
+                        >
                             {winnerPlayer?.name ?? "Unknown"} wins!
                         </p>
                         {winnerHand && (
-                            <p className="text-neutral-300 text-sm">
+                            <p
+                                className="text-sm"
+                                style={{ color: "var(--sd-ivory)" }}
+                            >
                                 {winnerHand}
                             </p>
                         )}
@@ -32,13 +47,38 @@ export function ShowdownOverlay() {
                     <div className="flex gap-3">
                         <button
                             onClick={viewAnalysis}
-                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
+                            className="px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:outline-none"
+                            style={{
+                                backgroundColor: "var(--sd-brass)",
+                                color: "#000",
+                                // @ts-expect-error CSS custom property for focus ring
+                                "--tw-ring-color": "var(--sd-brass)",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--sd-brass-muted)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--sd-brass)";
+                            }}
                         >
                             View Analysis
                         </button>
                         <button
                             onClick={handleNextHand}
-                            className="bg-neutral-700 hover:bg-neutral-600 text-white px-5 py-2.5 rounded-lg font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-400"
+                            className="px-5 py-2.5 rounded-lg font-medium transition-colors border focus-visible:ring-2 focus-visible:outline-none"
+                            style={{
+                                backgroundColor: "transparent",
+                                borderColor: "var(--sd-rail-highlight)",
+                                color: "var(--sd-ivory)",
+                                // @ts-expect-error CSS custom property for focus ring
+                                "--tw-ring-color": "var(--sd-brass)",
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = "var(--sd-surface)";
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = "transparent";
+                            }}
                         >
                             Next Hand
                         </button>

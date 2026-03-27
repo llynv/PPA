@@ -14,7 +14,7 @@ export function ActivityRibbon() {
         <div
             role="status"
             aria-live="polite"
-            className="text-xs font-medium px-3 py-1 rounded-full"
+            className="text-xs font-medium px-3 py-1 rounded-full transition-opacity duration-150"
             style={{
                 background: "var(--sd-smoke)",
                 color: "var(--sd-ivory)",

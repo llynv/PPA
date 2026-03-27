@@ -110,7 +110,7 @@ export function SeatCard({
         : isFolded
           ? "text-neutral-500"
           : isAllIn
-            ? "text-red-400"
+            ? "text-red-400 motion-safe:animate-pulse"
             : "text-neutral-400";
 
     // Active ring uses --sd-brass instead of emerald
@@ -147,7 +147,7 @@ export function SeatCard({
                 data-active={isActive || undefined}
                 data-winner={isWinner || undefined}
                 data-folded={isFolded || undefined}
-                className={`relative flex flex-col items-center ${activeClass} ${isFolded ? "opacity-40" : ""}`}
+                className={`relative flex flex-col items-center transition-opacity duration-200 ${activeClass} ${isFolded ? "opacity-40" : ""}`}
                 style={{ ...activeRingStyle, ...winnerRingStyle }}
             >
                 {/* Cards */}

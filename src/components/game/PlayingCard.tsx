@@ -57,7 +57,7 @@ export function PlayingCard({
     return (
         <div
             aria-label={`${card.rank} of ${card.suit}`}
-            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 bg-neutral-100 rounded-md border border-neutral-300 flex flex-col items-center justify-center gap-0 shadow-md ${textClass} ${className}`}
+            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 bg-neutral-100 rounded-md border border-neutral-300 flex flex-col items-center justify-center gap-0 shadow-md animate-sd-fade-in ${textClass} ${className}`}
         >
             <span className="text-xs sm:text-sm md:text-base font-bold leading-tight">
                 {card.rank}
