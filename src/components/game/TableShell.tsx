@@ -1,5 +1,6 @@
 import { GameTopBar } from "./GameTopBar";
 import { PokerTable } from "./PokerTable";
+import { HeroDock } from "./HeroDock";
 
 export function TableShell() {
   return (
@@ -8,6 +9,7 @@ export function TableShell() {
       <div className="flex-1 min-h-0">
         <PokerTable />
       </div>
+      <HeroDock />
     </div>
   );
 }

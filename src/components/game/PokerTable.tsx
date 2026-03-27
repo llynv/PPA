@@ -1,6 +1,5 @@
 import { useGameStore } from "../../store/gameStore";
 import { SeatRing } from "./SeatRing";
-import { ActionControls } from "./ActionControls";
 import { BoardCenter } from "./BoardCenter";
 import { TableHUD } from "./TableHUD";
 import { HintPanel } from "./HintPanel";
@@ -129,11 +128,10 @@ export function PokerTable() {
                 </div>
             </div>
 
-            {/* ── Action Bar Container ── dedicated bottom zone, never overlaps table */}
+            {/* ── Hint Panel ── dedicated bottom zone, never overlaps table */}
             {!isShowdown && (
-                <div className="shrink-0 w-full border-t border-neutral-800 bg-neutral-950 pb-[env(safe-area-inset-bottom,0px)]">
+                <div className="shrink-0 w-full">
                     <HintPanel />
-                    <ActionControls />
                 </div>
             )}
         </div>
