@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { Card, Player, BettingRound } from "../../types/poker";
+import type { Card, Player } from "../../types/poker";
 import { PlayingCard, FaceDownCard } from "./PlayingCard";
 import { useGameStore } from "../../store/gameStore";
 import { getPosition } from "../../lib/poker-engine";
@@ -72,7 +72,6 @@ export function SeatCard({
     playerCount,
     placement,
 }: SeatCardProps) {
-    const currentRound = useGameStore((s) => s.currentRound);
     const gamePhase = useGameStore((s) => s.gamePhase);
     const winner = useGameStore((s) => s.winner);
     const communityCards = useGameStore((s) => s.communityCards);
@@ -105,13 +104,7 @@ export function SeatCard({
     }, [gamePhase, player.isFolded, player.holeCards, communityCards]);
 
     // Determine status text for the bottom line of the info box
-    const statusText = getStatusText(
-        player,
-        currentRound,
-        isHeroTurn,
-        isFolded,
-        isAllIn,
-    );
+    const statusText = getStatusText(player, isHeroTurn, isFolded, isAllIn);
     const statusColor = isHeroTurn
         ? "text-emerald-400"
         : isFolded
@@ -266,7 +259,6 @@ function PlayerCards({
 
 function getStatusText(
     player: Player,
-    _currentRound: BettingRound,
     isHeroTurn: boolean,
     isFolded: boolean,
     isAllIn: boolean,
