@@ -1,20 +1,13 @@
 import type { Card, Suit } from "../../types/poker";
 import { suitSymbol } from "../../lib/deck";
 
-// ── 4-Color Deck Mapping ────────────────────────────────────────────
+// ── 2-Color Classic Mapping ─────────────────────────────────────────
 
-const SUIT_BG: Record<Suit, string> = {
-    spades: "bg-neutral-900",
-    hearts: "bg-red-600",
-    diamonds: "bg-blue-600",
-    clubs: "bg-green-600",
-};
-
-const SUIT_TEXT: Record<Suit, string> = {
-    spades: "text-white",
-    hearts: "text-white",
-    diamonds: "text-white",
-    clubs: "text-white",
+const SUIT_COLOR: Record<Suit, string> = {
+    hearts: "text-red-500",
+    diamonds: "text-red-500",
+    clubs: "text-neutral-800",
+    spades: "text-neutral-800",
 };
 
 // ── Face-Down Card ──────────────────────────────────────────────────
@@ -27,14 +20,17 @@ function FaceDownCard({ className = "" }: { className?: string }) {
             style={{
                 background: `repeating-linear-gradient(
                     135deg,
-                    #991b1b,
-                    #991b1b 4px,
-                    #7f1d1d 4px,
-                    #7f1d1d 8px
+                    var(--sd-rail) 0px,
+                    var(--sd-rail) 4px,
+                    var(--sd-rail-highlight) 4px,
+                    var(--sd-rail-highlight) 8px
                 )`,
             }}
         >
-            <div className="w-5 h-7 sm:w-6 sm:h-8 md:w-7 md:h-10 rounded-sm border border-red-700/40" />
+            <div
+                className="w-5 h-7 sm:w-6 sm:h-8 md:w-7 md:h-10 rounded-sm border"
+                style={{ borderColor: "var(--sd-rail-highlight)" }}
+            />
         </div>
     );
 }
@@ -56,13 +52,12 @@ export function PlayingCard({
         return <FaceDownCard className={className} />;
     }
 
-    const bgClass = SUIT_BG[card.suit];
-    const textClass = SUIT_TEXT[card.suit];
+    const textClass = SUIT_COLOR[card.suit];
 
     return (
         <div
             aria-label={`${card.rank} of ${card.suit}`}
-            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 ${bgClass} rounded-md border border-white/20 flex flex-col items-center justify-center gap-0 shadow-md ${textClass} ${className}`}
+            className={`w-8 h-12 sm:w-10 sm:h-14 md:w-12 md:h-16 bg-neutral-100 rounded-md border border-neutral-300 flex flex-col items-center justify-center gap-0 shadow-md ${textClass} ${className}`}
         >
             <span className="text-xs sm:text-sm md:text-base font-bold leading-tight">
                 {card.rank}

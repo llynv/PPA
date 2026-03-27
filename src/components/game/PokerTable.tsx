@@ -1,5 +1,5 @@
 import { useGameStore } from "../../store/gameStore";
-import { PlayerProfile } from "./PlayerProfile";
+import { SeatRing } from "./SeatRing";
 import { ActionControls } from "./ActionControls";
 import { BoardCenter } from "./BoardCenter";
 import { TableHUD } from "./TableHUD";
@@ -56,265 +56,6 @@ function ShowdownOverlay() {
     );
 }
 
-// ── Seat Distribution ───────────────────────────────────────────────
-
-type TablePlacement = "top" | "bottom" | "top-left" | "top-right" | "left" | "right";
-
-interface SeatLayout {
-    placement: TablePlacement;
-    profilePlacement: "top" | "bottom";
-    style: React.CSSProperties;
-}
-
-/**
- * Maps player count to seat positions around the oval table.
- * Hero (index 0) is always at the bottom center.
- */
-function getSeatLayouts(playerCount: number): SeatLayout[] {
-    switch (playerCount) {
-        case 2:
-            return [
-                // Hero - bottom center, anchored to table edge
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                // Villain - top center, anchored to table edge
-                {
-                    placement: "top",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-            ];
-        case 3:
-            return [
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                {
-                    placement: "top-left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "8%",
-                        left: "22%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top-right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "8%",
-                        right: "22%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-            ];
-        case 4:
-            return [
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                {
-                    placement: "left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        left: "5%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        right: "5%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-            ];
-        case 5:
-            return [
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                {
-                    placement: "left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        left: "5%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top-left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "5%",
-                        left: "25%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top-right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "5%",
-                        right: "25%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        right: "5%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-            ];
-        case 6:
-            return [
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                {
-                    placement: "left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        left: "5%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top-left",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "5%",
-                        left: "25%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "top-right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "5%",
-                        right: "25%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-                {
-                    placement: "right",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: "50%",
-                        right: "5%",
-                        transform: "translateX(50%) translateY(-50%)",
-                    },
-                },
-            ];
-        default:
-            return [
-                {
-                    placement: "bottom",
-                    profilePlacement: "bottom",
-                    style: {
-                        position: "absolute",
-                        bottom: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(30%)",
-                    },
-                },
-                {
-                    placement: "top",
-                    profilePlacement: "top",
-                    style: {
-                        position: "absolute",
-                        top: 0,
-                        left: "50%",
-                        transform: "translateX(-50%) translateY(-50%)",
-                    },
-                },
-            ];
-    }
-}
-
 // ── Watermark ───────────────────────────────────────────────────────
 
 function TableWatermark() {
@@ -336,7 +77,6 @@ export function PokerTable() {
     const gamePhase = useGameStore((s) => s.gamePhase);
 
     const isShowdown = gamePhase === "showdown";
-    const seatLayouts = getSeatLayouts(players.length);
 
     return (
         <div className="poker-table-bg flex flex-col h-full">
@@ -376,31 +116,13 @@ export function PokerTable() {
                         </div>
                     </div>
 
-                    {/* Player seats - positioned around the table edge */}
-                    {players.map((player, i) => {
-                        const layout = seatLayouts[i];
-                        if (!layout) return null;
-
-                        return (
-                            <div
-                                key={player.id}
-                                style={layout.style}
-                                className={`z-${player.isHero ? "[12]" : "10"} ${isShowdown ? "" : i === activePlayerIndex ? "z-[15]" : ""}`}
-                            >
-                                <PlayerProfile
-                                    player={player}
-                                    isActive={
-                                        !isShowdown && i === activePlayerIndex
-                                    }
-                                    isDealer={i === dealerIndex}
-                                    seatIndex={i}
-                                    dealerIndex={dealerIndex}
-                                    playerCount={players.length}
-                                    placement={layout.profilePlacement}
-                                />
-                            </div>
-                        );
-                    })}
+                    {/* Player seats - trigonometric ring around the table */}
+                    <SeatRing
+                        players={players}
+                        activePlayerIndex={activePlayerIndex}
+                        dealerIndex={dealerIndex}
+                        isShowdown={isShowdown}
+                    />
 
                     {/* Showdown overlay */}
                     {isShowdown && <ShowdownOverlay />}
