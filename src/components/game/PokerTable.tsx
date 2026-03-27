@@ -1,8 +1,6 @@
 import { useGameStore } from "../../store/gameStore";
 import { SeatRing } from "./SeatRing";
 import { BoardCenter } from "./BoardCenter";
-import { TableHUD } from "./TableHUD";
-import { HintPanel } from "./HintPanel";
 
 // ── Showdown Overlay ────────────────────────────────────────────────
 
@@ -107,10 +105,9 @@ export function PokerTable() {
 
                             <TableWatermark />
 
-                            {/* Center content: pot + community cards + activity ribbon + HUD */}
+                            {/* Center content: pot + community cards + activity ribbon */}
                             <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 md:gap-2 z-10">
                                 <BoardCenter />
-                                <TableHUD />
                             </div>
                         </div>
                     </div>
@@ -128,12 +125,6 @@ export function PokerTable() {
                 </div>
             </div>
 
-            {/* ── Hint Panel ── dedicated bottom zone, never overlaps table */}
-            {!isShowdown && (
-                <div className="shrink-0 w-full">
-                    <HintPanel />
-                </div>
-            )}
         </div>
     );
 }
