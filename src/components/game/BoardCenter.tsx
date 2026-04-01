@@ -12,8 +12,13 @@ const ROUND_LABELS: Record<BettingRound, string> = {
 
 export function BoardCenter() {
     const pot = useGameStore((s) => s.pot);
+    const gamePhase = useGameStore((s) => s.gamePhase);
+    const potWon = useGameStore((s) => s.potWon);
     const communityCards = useGameStore((s) => s.communityCards);
     const currentRound = useGameStore((s) => s.currentRound);
+
+    // During showdown, pot is zeroed — show potWon instead
+    const displayPot = gamePhase === "showdown" && potWon != null ? potWon : pot;
 
     return (
         <div className="flex flex-col items-center gap-1.5">
@@ -25,7 +30,7 @@ export function BoardCenter() {
                     color: "var(--sd-brass)",
                 }}
             >
-                Pot: {pot.toFixed(2)}
+                Pot: {displayPot.toFixed(2)}
             </div>
 
             {/* Community cards */}

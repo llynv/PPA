@@ -62,13 +62,16 @@ function getCommunityCardsForRound(
 /**
  * Estimate the pot size at the point hero made their decision in a round.
  * Sums all amounts from previous rounds + amounts in current round before hero's action.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getPotAtDecision(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): number {
     let pot = 0;
+    let heroActionsSeen = 0;
     for (const a of actions) {
         const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
         const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
@@ -77,9 +80,15 @@ function getPotAtDecision(
             // All contributions from previous rounds
             pot += a.amount ?? 0;
         } else if (a.round === round) {
-            // Within this round, sum up to (but not including) the hero's action
-            if (a.playerId === heroId) break;
-            pot += a.amount ?? 0;
+            // Within this round, sum up to (but not including) the target hero action
+            if (a.playerId === heroId) {
+                if (heroActionsSeen === heroActionIndex) break;
+                heroActionsSeen++;
+                // Include this earlier hero action's amount in the pot
+                pot += a.amount ?? 0;
+            } else {
+                pot += a.amount ?? 0;
+            }
         }
     }
     return pot;
@@ -89,18 +98,32 @@ function getPotAtDecision(
  * Get the highest bet in the current round (before hero's action).
  * Since action.amount is potDelta (additional chips), we track cumulative
  * contributions per player in this round.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getHighestBetInRound(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): number {
     let highestBet = 0;
     const playerBets = new Map<string, number>();
+    let heroActionsSeen = 0;
 
     for (const a of actions) {
         if (a.round !== round) continue;
-        if (a.playerId === heroId) break;
+        if (a.playerId === heroId) {
+            if (heroActionsSeen === heroActionIndex) break;
+            heroActionsSeen++;
+            // Include hero's earlier bets in cumulative tracking
+            const amount = a.amount ?? 0;
+            if (amount > 0) {
+                const current = playerBets.get(a.playerId) ?? 0;
+                playerBets.set(a.playerId, current + amount);
+                highestBet = Math.max(highestBet, current + amount);
+            }
+            continue;
+        }
 
         const amount = a.amount ?? 0;
         if (amount > 0) {
@@ -114,58 +137,108 @@ function getHighestBetInRound(
 }
 
 /**
- * Get how much the hero has already bet in this round before their primary action.
- * Since we analyze the hero's first action in each round, this is always 0 —
- * the hero hasn't contributed to this round's betting yet.
+ * Get how much the hero has already bet in this round before the target action.
+ * For heroActionIndex=0, the hero hasn't bet yet this round, so returns 0.
+ * For heroActionIndex>0, sums the hero's prior bet amounts in this round.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getHeroBetInRound(
-    _actions: PlayerAction[],
-    _heroId: string,
-    _round: BettingRound,
+    actions: PlayerAction[],
+    heroId: string,
+    round: BettingRound,
+    heroActionIndex: number = 0,
 ): number {
-    // Hero's first action in the round means they haven't bet yet in this round.
-    return 0;
+    if (heroActionIndex === 0) return 0; // First action: hero hasn't bet this round yet
+
+    let heroBet = 0;
+    let heroActionsSeen = 0;
+
+    for (const a of actions) {
+        if (a.round !== round) continue;
+        if (a.playerId === heroId) {
+            if (heroActionsSeen >= heroActionIndex) break;
+            heroBet += a.amount ?? 0;
+            heroActionsSeen++;
+        }
+    }
+
+    return heroBet;
 }
 
 /**
  * Get the amount the hero needs to call in a given round.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getAmountToCall(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): number {
-    const highestBet = getHighestBetInRound(actions, heroId, round);
-    const heroBet = getHeroBetInRound(actions, heroId, round);
+    const highestBet = getHighestBetInRound(actions, heroId, round, heroActionIndex);
+    const heroBet = getHeroBetInRound(actions, heroId, round, heroActionIndex);
     return Math.max(0, highestBet - heroBet);
 }
 
 /**
- * Determine whether the hero was facing a bet/raise on a given round.
+ * Determine whether the hero was facing a bet/raise at a specific decision point.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function isFacingBet(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): boolean {
+    let heroActionsSeen = 0;
+    // Track the index of hero's previous action in this round (for heroActionIndex > 0)
+    let lastHeroActionIdx = -1;
+
+    // First pass: find the position of the target hero action and the previous one
+    let targetIdx = -1;
+    let idx = 0;
     for (const a of actions) {
-        if (a.round !== round) continue;
-        if (a.playerId === heroId) break;
+        if (a.round !== round) { idx++; continue; }
+        if (a.playerId === heroId) {
+            if (heroActionsSeen === heroActionIndex) {
+                targetIdx = idx;
+                break;
+            }
+            lastHeroActionIdx = idx;
+            heroActionsSeen++;
+        }
+        idx++;
+    }
+
+    // Now check for bet/raise between the previous hero action (or start of round) and the target
+    const startCheckIdx = heroActionIndex > 0 ? lastHeroActionIdx + 1 : 0;
+    idx = 0;
+    for (const a of actions) {
+        if (a.round !== round) { idx++; continue; }
+        if (idx < startCheckIdx) { idx++; continue; }
+        if (idx >= targetIdx && targetIdx >= 0) break;
+        if (a.playerId === heroId) { idx++; continue; } // skip hero's own actions
         if (a.type === "bet" || a.type === "raise") {
             return true;
         }
+        idx++;
     }
     return false;
 }
 
 /**
- * Check if hero is first to act in this round.
+ * Check if hero is first to act at this decision point.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function isFirstToAct(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): boolean {
+    // If this is the 2nd+ action, hero already acted — never first to act
+    if (heroActionIndex > 0) return false;
+
     for (const a of actions) {
         if (a.round !== round) continue;
         // First action in the round — is it the hero?
@@ -176,20 +249,27 @@ function isFirstToAct(
 
 /**
  * Count how many players are still active (not folded) at the point of hero's action.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getActivePlayers(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
     totalPlayers: number,
+    heroActionIndex: number = 0,
 ): number {
     const folded = new Set<string>();
     const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
+    let heroActionsSeen = 0;
 
     for (const a of actions) {
         const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
         if (actionRoundIndex > targetRoundIndex) break;
-        if (a.round === round && a.playerId === heroId) break;
+        if (a.round === round && a.playerId === heroId) {
+            if (heroActionsSeen === heroActionIndex) break;
+            heroActionsSeen++;
+            // Don't break — continue to count folds after hero's earlier action
+        }
 
         if (a.type === "fold") {
             folded.add(a.playerId);
@@ -200,20 +280,27 @@ function getActivePlayers(
 }
 
 /**
- * Get the action history up to (but not including) hero's action in this round.
+ * Get the action history up to (but not including) hero's action at the specified index.
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getActionHistory(
     actions: PlayerAction[],
     heroId: string,
     round: BettingRound,
+    heroActionIndex: number = 0,
 ): PlayerAction[] {
     const history: PlayerAction[] = [];
     const targetRoundIndex = BETTING_ROUNDS.indexOf(round);
+    let heroActionsSeen = 0;
 
     for (const a of actions) {
         const actionRoundIndex = BETTING_ROUNDS.indexOf(a.round);
         if (actionRoundIndex > targetRoundIndex) break;
-        if (a.round === round && a.playerId === heroId) break;
+        if (a.round === round && a.playerId === heroId) {
+            if (heroActionsSeen === heroActionIndex) break;
+            heroActionsSeen++;
+            // Include hero's earlier actions in the history
+        }
         history.push(a);
     }
 
@@ -221,7 +308,8 @@ function getActionHistory(
 }
 
 /**
- * Find the position of the raiser in this round (if any).
+ * Find the position of the raiser before this specific hero action (if any).
+ * @param heroActionIndex Which hero action in this round we're analyzing (0-based).
  */
 function getRaiserPosition(
     actions: PlayerAction[],
@@ -230,12 +318,19 @@ function getRaiserPosition(
     players: { id: string; isDealer: boolean }[],
     numPlayers: number,
     dealerIndex: number,
+    heroActionIndex: number = 0,
 ): Position | undefined {
     let raiserPlayerId: string | undefined;
+    let heroActionsSeen = 0;
 
     for (const a of actions) {
         if (a.round !== round) continue;
-        if (a.playerId === heroId) break;
+        if (a.playerId === heroId) {
+            if (heroActionsSeen === heroActionIndex) break;
+            heroActionsSeen++;
+            // Don't break — continue looking for raisers after hero's earlier action
+            continue;
+        }
         if (a.type === "bet" || a.type === "raise") {
             raiserPlayerId = a.playerId;
         }
@@ -421,144 +516,148 @@ export function analyzeHand(handHistory: HandHistory): AnalysisData {
 
     // Analyze each round where hero acted
     for (const round of BETTING_ROUNDS) {
-        const heroActions = actions.filter(
+        const heroActionsInRound = actions.filter(
             (a) => a.playerId === hero.id && a.round === round,
         );
 
-        if (heroActions.length === 0) continue;
+        if (heroActionsInRound.length === 0) continue;
 
-        // Take the hero's primary action in this round
-        const heroAction = heroActions[0];
+        // Analyze each hero decision point in this round
+        for (let heroActionIdx = 0; heroActionIdx < heroActionsInRound.length; heroActionIdx++) {
+            const heroAction = heroActionsInRound[heroActionIdx];
 
-        // Reconstruct game state at the point of hero's decision
-        const pot = getPotAtDecision(actions, hero.id, round);
-        const toCall = getAmountToCall(actions, hero.id, round);
-        const currentBet = getHighestBetInRound(actions, hero.id, round);
-        const visibleCards = getCommunityCardsForRound(communityCards, round);
-        const facingBet = isFacingBet(actions, hero.id, round);
-        const firstToAct = isFirstToAct(actions, hero.id, round);
-        const numActivePlayers = getActivePlayers(
-            actions,
-            hero.id,
-            round,
-            numPlayers,
-        );
-        const actionHistory = getActionHistory(actions, hero.id, round);
-        const raiserPosition = getRaiserPosition(
-            actions,
-            hero.id,
-            round,
-            players,
-            numPlayers,
-            dealerIndex >= 0 ? dealerIndex : 0,
-        );
-
-        // Build DecisionContext
-        const ctx: DecisionContext = {
-            holeCards,
-            communityCards: visibleCards,
-            position: heroPosition,
-            round,
-            pot: Math.max(pot, bigBlind), // ensure minimum pot of 1 BB
-            toCall,
-            currentBet,
-            stack: hero.stack,
-            bigBlind,
-            numActivePlayers,
-            numPlayersInHand: numActivePlayers,
-            isFirstToAct: firstToAct,
-            facingRaise: facingBet,
-            raiserPosition,
-            actionHistory,
-        };
-
-        // Call the decision engine
-        const result = evaluateDecision(ctx);
-
-        // Calculate EV diff from evByAction
-        const heroCategory = mapActionToCategory(heroAction.type);
-        const heroEv = result.evByAction[heroCategory];
-
-        // Find the max EV (optimal) from evByAction
-        const maxEv = Math.max(
-            result.evByAction.fold,
-            result.evByAction.call,
-            result.evByAction.raise,
-        );
-
-        // EV loss = EV(optimal action) - EV(hero's action), in BB
-        const evDiffRaw = maxEv - heroEv;
-        const evDiffInBB =
-            bigBlind > 0 ? evDiffRaw / bigBlind : evDiffRaw;
-        const evDiff = Math.max(0, Math.round(evDiffInBB * 100) / 100);
-
-        // Hero's actual EV in BB (positive = profitable decision)
-        const heroEvInBB = bigBlind > 0 ? heroEv / bigBlind : heroEv;
-        const heroEvRounded = Math.round(heroEvInBB * 100) / 100;
-
-        // Build bet size analysis when hero bet or raised
-        let betSizeAnalysis: Decision["betSizeAnalysis"];
-        if (
-            (heroAction.type === "bet" || heroAction.type === "raise") &&
-            heroAction.amount != null &&
-            heroAction.amount > 0 &&
-            result.optimalAmount != null &&
-            result.optimalAmount > 0
-        ) {
-            const heroSize = heroAction.amount;
-            const optimalSize = result.optimalAmount;
-            betSizeAnalysis = {
-                heroSize,
-                optimalSize,
-                sizingError: (heroSize - optimalSize) / optimalSize,
-            };
-        }
-
-        const decision: Decision = {
-            round,
-            heroAction: heroAction.type,
-            heroAmount: heroAction.amount,
-            optimalAction: result.optimalAction,
-            optimalAmount: result.optimalAmount,
-            optimalFrequencies: result.frequencies,
-            evDiff,
-            heroEv: heroEvRounded,
-            equity: result.equity,
-            potOdds: result.potOdds,
-            spr: result.spr,
-            draws: result.draws,
-            boardTexture: result.boardTexture,
-            reasoning: result.reasoning,
-            evByAction: result.evByAction,
-            betSizeAnalysis,
-            heroIsAllIn: heroAllInRound === round,
-            coaching: null,  // populated below if mistake detected
-        };
-
-        decisions.push(decision);
-
-        // Generate mistake if hero deviated from optimal.
-        // Skip if hero's action is a viable mixed-strategy play (>= 20% frequency).
-        const heroFrequency = result.frequencies[heroCategory];
-        if (evDiff > 0 && heroFrequency < 0.2) {
-            const { type: mistakeType, category: mistakeCategory } = classifyMistake(decision);
-            const coaching = generateCoaching(decision, mistakeType);
-
-            // Attach coaching to the decision
-            decision.coaching = coaching;
-
-            const description = result.reasoning;
-
-            mistakes.push({
+            // Reconstruct game state at THIS decision point
+            const pot = getPotAtDecision(actions, hero.id, round, heroActionIdx);
+            const toCall = getAmountToCall(actions, hero.id, round, heroActionIdx);
+            const currentBet = getHighestBetInRound(actions, hero.id, round, heroActionIdx);
+            const visibleCards = getCommunityCardsForRound(communityCards, round);
+            const facingBet = isFacingBet(actions, hero.id, round, heroActionIdx);
+            const firstToAct = isFirstToAct(actions, hero.id, round, heroActionIdx);
+            const numActivePlayers = getActivePlayers(
+                actions,
+                hero.id,
                 round,
-                description,
-                severity: determineSeverity(evDiff),
-                evLoss: evDiff,
+                numPlayers,
+                heroActionIdx,
+            );
+            const actionHistory = getActionHistory(actions, hero.id, round, heroActionIdx);
+            const raiserPosition = getRaiserPosition(
+                actions,
+                hero.id,
+                round,
+                players,
+                numPlayers,
+                dealerIndex >= 0 ? dealerIndex : 0,
+                heroActionIdx,
+            );
+
+            // Build DecisionContext
+            const ctx: DecisionContext = {
+                holeCards,
+                communityCards: visibleCards,
+                position: heroPosition,
+                round,
+                pot: Math.max(pot, bigBlind), // ensure minimum pot of 1 BB
+                toCall,
+                currentBet,
+                stack: hero.stack,
+                bigBlind,
+                numActivePlayers,
+                numPlayersInHand: numActivePlayers,
+                isFirstToAct: firstToAct,
+                facingRaise: facingBet,
+                raiserPosition,
+                actionHistory,
+            };
+
+            // Call the decision engine
+            const result = evaluateDecision(ctx);
+
+            // Calculate EV diff from evByAction
+            const heroCategory = mapActionToCategory(heroAction.type);
+            const heroEv = result.evByAction[heroCategory];
+
+            // Find the max EV (optimal) from evByAction
+            const maxEv = Math.max(
+                result.evByAction.fold,
+                result.evByAction.call,
+                result.evByAction.raise,
+            );
+
+            // EV loss = EV(optimal action) - EV(hero's action), in BB
+            const evDiffRaw = maxEv - heroEv;
+            const evDiffInBB =
+                bigBlind > 0 ? evDiffRaw / bigBlind : evDiffRaw;
+            const evDiff = Math.max(0, Math.round(evDiffInBB * 100) / 100);
+
+            // Hero's actual EV in BB (positive = profitable decision)
+            const heroEvInBB = bigBlind > 0 ? heroEv / bigBlind : heroEv;
+            const heroEvRounded = Math.round(heroEvInBB * 100) / 100;
+
+            // Build bet size analysis when hero bet or raised
+            let betSizeAnalysis: Decision["betSizeAnalysis"];
+            if (
+                (heroAction.type === "bet" || heroAction.type === "raise") &&
+                heroAction.amount != null &&
+                heroAction.amount > 0 &&
+                result.optimalAmount != null &&
+                result.optimalAmount > 0
+            ) {
+                const heroSize = heroAction.amount;
+                const optimalSize = result.optimalAmount;
+                betSizeAnalysis = {
+                    heroSize,
+                    optimalSize,
+                    sizingError: (heroSize - optimalSize) / optimalSize,
+                };
+            }
+
+            const decision: Decision = {
+                round,
                 heroAction: heroAction.type,
+                heroAmount: heroAction.amount,
                 optimalAction: result.optimalAction,
-                type: mistakeType,
-                category: mistakeCategory,
-            });
+                optimalAmount: result.optimalAmount,
+                optimalFrequencies: result.frequencies,
+                evDiff,
+                heroEv: heroEvRounded,
+                equity: result.equity,
+                potOdds: result.potOdds,
+                spr: result.spr,
+                draws: result.draws,
+                boardTexture: result.boardTexture,
+                reasoning: result.reasoning,
+                evByAction: result.evByAction,
+                betSizeAnalysis,
+                heroIsAllIn: heroAllInRound === round,
+                coaching: null,  // populated below if mistake detected
+            };
+
+            decisions.push(decision);
+
+            // Generate mistake if hero deviated from optimal.
+            // Skip if hero's action is a viable mixed-strategy play (>= 20% frequency).
+            const heroFrequency = result.frequencies[heroCategory];
+            if (evDiff > 0 && heroFrequency < 0.2) {
+                const { type: mistakeType, category: mistakeCategory } = classifyMistake(decision);
+                const coaching = generateCoaching(decision, mistakeType);
+
+                // Attach coaching to the decision
+                decision.coaching = coaching;
+
+                const description = result.reasoning;
+
+                mistakes.push({
+                    round,
+                    description,
+                    severity: determineSeverity(evDiff),
+                    evLoss: evDiff,
+                    heroAction: heroAction.type,
+                    optimalAction: result.optimalAction,
+                    type: mistakeType,
+                    category: mistakeCategory,
+                });
+            }
         }
     }
 

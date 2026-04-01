@@ -265,7 +265,7 @@ export function generateCorrectPlayCoaching(ctx: CoachingContext): EnhancedCoach
 
     const whatHappened = `You correctly chose to ${heroLabel.toLowerCase()} on the ${ctx.round}.`;
 
-    const whatToDo = `Nice play. With ${equityPct} equity, ${ctx.decision.heroAction} is the optimal action here. Keep recognizing these spots.`;
+    const whatToDo = `Nice play. With ${equityPct} equity, ${ctx.decision.optimalAction} is the optimal action here. Keep recognizing these spots.`;
 
     const boardNarrative = generateBoardNarrative(ctx.boardTexture, ctx.draws, ctx.round);
 

@@ -160,7 +160,9 @@ interface StoreState {
     handNumber: number;
     gamePhase: GamePhase;
     winner?: string;
+    winnerIds?: string[];
     winnerHand?: string;
+    potWon?: number;
     handHistory: HandHistory[];
 
     // Analysis
@@ -206,7 +208,9 @@ export const useGameStore = create<StoreState>()(
     handNumber: 0,
     gamePhase: "settings",
     winner: undefined,
+    winnerIds: undefined,
     winnerHand: undefined,
+    potWon: undefined,
     handHistory: [],
     analysisData: null,
     sessionAnalyses: [],
@@ -354,7 +358,9 @@ export const useGameStore = create<StoreState>()(
             handNumber,
             gamePhase: "playing",
             winner: undefined,
+            winnerIds: undefined,
             winnerHand: undefined,
+            potWon: undefined,
             analysisData: null,
         });
     },
@@ -446,6 +452,7 @@ export const useGameStore = create<StoreState>()(
                 actions: updatedActions,
                 pot: newPot,
                 winnerId: winner.id,
+                winnerIds: [winner.id],
                 potWon: newPot,
             };
 
@@ -456,7 +463,9 @@ export const useGameStore = create<StoreState>()(
                 actions: updatedActions,
                 gamePhase: "showdown",
                 winner: winner.id,
+                winnerIds: [winner.id],
                 winnerHand: undefined,
+                potWon: newPot,
                 handHistory: [...state.handHistory, handHistoryEntry],
             });
             return;
@@ -734,6 +743,7 @@ export const useGameStore = create<StoreState>()(
                 actions: [...actions],
                 pot,
                 winnerId: winner.player.id,
+                winnerIds: [winner.player.id],
                 winnerHand: undefined,
                 potWon: pot,
             };
@@ -744,7 +754,9 @@ export const useGameStore = create<StoreState>()(
                 contributions: {},
                 gamePhase: "showdown",
                 winner: winner.player.id,
+                winnerIds: [winner.player.id],
                 winnerHand: undefined,
+                potWon: pot,
                 handHistory: [...state.handHistory, handHistoryEntry],
             });
             return;
@@ -759,6 +771,7 @@ export const useGameStore = create<StoreState>()(
         // Resolve each pot independently
         const updatedPlayers = players.map((p) => ({ ...p }));
         let overallWinnerId = contenders[0].player.id;
+        let overallWinnerIds = [contenders[0].player.id];
         let overallWinnerHand: string | undefined;
 
         for (const sidePot of sidePots) {
@@ -803,7 +816,8 @@ export const useGameStore = create<StoreState>()(
 
             // Track overall winner (winner of the main pot)
             if (sidePot === sidePots[0]) {
-                overallWinnerId = bestGroup[0].player.id;
+                overallWinnerIds = bestGroup.map(g => g.player.id);
+                overallWinnerId = overallWinnerIds[0];
                 const bestEval = getBestHand(bestGroup[0].player.holeCards, communityCards);
                 overallWinnerHand = bestEval.description;
             }
@@ -821,6 +835,7 @@ export const useGameStore = create<StoreState>()(
             actions: [...actions],
             pot,
             winnerId: overallWinnerId,
+            winnerIds: overallWinnerIds,
             winnerHand: overallWinnerHand,
             potWon: totalWon,
         };
@@ -831,7 +846,9 @@ export const useGameStore = create<StoreState>()(
             contributions: {},
             gamePhase: "showdown",
             winner: overallWinnerId,
+            winnerIds: overallWinnerIds,
             winnerHand: overallWinnerHand,
+            potWon: pot,
             handHistory: [...state.handHistory, handHistoryEntry],
         });
     },
@@ -882,7 +899,9 @@ export const useGameStore = create<StoreState>()(
             handNumber: 0,
             gamePhase: "settings",
             winner: undefined,
+            winnerIds: undefined,
             winnerHand: undefined,
+            potWon: undefined,
             handHistory: [],
             analysisData: null,
             sessionAnalyses: [],

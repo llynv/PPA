@@ -108,7 +108,8 @@ export interface HandHistory {
     communityCards: Card[];
     actions: PlayerAction[];
     pot: number;
-    winnerId: string;
+    winnerId: string;       // keep for backward compat
+    winnerIds?: string[];   // all winners (for split pots)
     winnerHand?: string;
     potWon: number;
 }

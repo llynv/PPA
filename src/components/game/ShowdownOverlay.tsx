@@ -2,13 +2,25 @@ import { useGameStore } from "../../store/gameStore";
 
 export function ShowdownOverlay() {
     const winner = useGameStore((s) => s.winner);
+    const winnerIds = useGameStore((s) => s.winnerIds);
     const winnerHand = useGameStore((s) => s.winnerHand);
+    const potWon = useGameStore((s) => s.potWon);
     const players = useGameStore((s) => s.players);
     const viewAnalysis = useGameStore((s) => s.viewAnalysis);
     const startHand = useGameStore((s) => s.startHand);
     const processAITurns = useGameStore((s) => s.processAITurns);
 
-    const winnerPlayer = players.find((p) => p.id === winner);
+    const isSplitPot = winnerIds && winnerIds.length > 1;
+
+    // For split pot: show all winner names
+    const winnerNames = isSplitPot
+        ? winnerIds.map((id) => players.find((p) => p.id === id)?.name ?? "Unknown")
+        : null;
+
+    // For single winner (backward compat)
+    const winnerPlayer = !isSplitPot
+        ? players.find((p) => p.id === winner)
+        : null;
 
     const handleNextHand = () => {
         startHand();
@@ -33,7 +45,9 @@ export function ShowdownOverlay() {
                                 fontFamily: "var(--sd-font-display)",
                             }}
                         >
-                            {winnerPlayer?.name ?? "Unknown"} wins!
+                            {isSplitPot
+                                ? `Split Pot! ${winnerNames!.join(" and ")} chop`
+                                : `${winnerPlayer?.name ?? "Unknown"} wins!`}
                         </p>
                         {winnerHand && (
                             <p
@@ -41,6 +55,14 @@ export function ShowdownOverlay() {
                                 style={{ color: "var(--sd-ivory)" }}
                             >
                                 {winnerHand}
+                            </p>
+                        )}
+                        {potWon != null && potWon > 0 && (
+                            <p
+                                className="text-xs mt-0.5"
+                                style={{ color: "var(--sd-ivory)", opacity: 0.7 }}
+                            >
+                                Pot: {potWon.toFixed(2)}
                             </p>
                         )}
                     </div>

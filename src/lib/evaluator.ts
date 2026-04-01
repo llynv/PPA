@@ -22,6 +22,97 @@ export function getHandDescription(rank: HandRank): string {
     return HAND_DESCRIPTIONS[rank];
 }
 
+// ── Detailed Hand Description ───────────────────────────────────────
+
+/** Plural rank name for pairs/trips/quads (e.g. 14→"Aces", 5→"Fives"). */
+function rankNamePlural(value: number): string {
+    const PLURAL_NAMES: Record<number, string> = {
+        14: "Aces",
+        13: "Kings",
+        12: "Queens",
+        11: "Jacks",
+        10: "Tens",
+        9: "Nines",
+        8: "Eights",
+        7: "Sevens",
+        6: "Sixes",
+        5: "Fives",
+        4: "Fours",
+        3: "Threes",
+        2: "Twos",
+    };
+    return PLURAL_NAMES[value] ?? String(value);
+}
+
+/** Singular rank abbreviation for kickers / high cards (e.g. 14→"A", 11→"J", 7→"7"). */
+function rankNameShort(value: number): string {
+    if (value === 14) return "A";
+    if (value === 13) return "K";
+    if (value === 12) return "Q";
+    if (value === 11) return "J";
+    return String(value);
+}
+
+/**
+ * Returns a detailed human-readable description including rank values and kickers.
+ *
+ * Examples:
+ *  - "High Card A"
+ *  - "Pair of Fives, A-K-Q kicker"
+ *  - "Two Pair, Kings and Sevens"
+ *  - "Three Aces"
+ *  - "Straight, King-high"
+ *  - "Flush, Ace-high"
+ *  - "Full House, Aces full of Kings"
+ *  - "Four Queens"
+ *  - "Straight Flush, King-high"
+ *  - "Royal Flush"
+ */
+export function getDetailedHandDescription(
+    rank: HandRank,
+    tiebreakers: number[],
+): string {
+    switch (rank) {
+        case HandRank.ROYAL_FLUSH:
+            return "Royal Flush";
+
+        case HandRank.STRAIGHT_FLUSH:
+            return `Straight Flush, ${rankNameShort(tiebreakers[0])}-high`;
+
+        case HandRank.FOUR_OF_A_KIND:
+            return `Four ${rankNamePlural(tiebreakers[0])}`;
+
+        case HandRank.FULL_HOUSE:
+            return `Full House, ${rankNamePlural(tiebreakers[0])} full of ${rankNamePlural(tiebreakers[1])}`;
+
+        case HandRank.FLUSH:
+            return `Flush, ${rankNameShort(tiebreakers[0])}-high`;
+
+        case HandRank.STRAIGHT:
+            return `Straight, ${rankNameShort(tiebreakers[0])}-high`;
+
+        case HandRank.THREE_OF_A_KIND:
+            return `Three ${rankNamePlural(tiebreakers[0])}`;
+
+        case HandRank.TWO_PAIR:
+            return `Two Pair, ${rankNamePlural(tiebreakers[0])} and ${rankNamePlural(tiebreakers[1])}`;
+
+        case HandRank.PAIR: {
+            const kickers = tiebreakers
+                .slice(1)
+                .map(rankNameShort)
+                .join("-");
+            return `Pair of ${rankNamePlural(tiebreakers[0])}, ${kickers} kicker`;
+        }
+
+        case HandRank.HIGH_CARD:
+            return `High Card ${rankNameShort(tiebreakers[0])}`;
+
+        default:
+            return HAND_DESCRIPTIONS[rank] ?? "Unknown";
+    }
+}
+
 // ── Combination Generation ──────────────────────────────────────────
 
 /** Generates all C(n, k) combinations of the given array. */
@@ -266,7 +357,7 @@ export function evaluateHand(cards: Card[]): HandEvaluation {
     return {
         rank: result.rank,
         cards: result.cards,
-        description: getHandDescription(result.rank),
+        description: getDetailedHandDescription(result.rank, result.tiebreakers),
         strength: computeStrength(result),
     };
 }

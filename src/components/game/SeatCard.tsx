@@ -74,6 +74,7 @@ export function SeatCard({
 }: SeatCardProps) {
     const gamePhase = useGameStore((s) => s.gamePhase);
     const winner = useGameStore((s) => s.winner);
+    const winnerIds = useGameStore((s) => s.winnerIds);
     const communityCards = useGameStore((s) => s.communityCards);
     const activePlayerIndex = useGameStore((s) => s.activePlayerIndex);
     const players = useGameStore((s) => s.players);
@@ -81,7 +82,9 @@ export function SeatCard({
     const showCards = player.isHero || gamePhase === "showdown";
     const isFolded = player.isFolded;
     const isAllIn = player.isAllIn;
-    const isWinner = gamePhase === "showdown" && player.id === winner;
+    const isWinner = gamePhase === "showdown" && (
+        winnerIds ? winnerIds.includes(player.id) : player.id === winner
+    );
     const isHeroTurn =
         player.isHero && players[activePlayerIndex]?.isHero === true;
 
